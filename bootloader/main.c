@@ -163,7 +163,7 @@ static void _launch_payload(char *path, bool update, bool clear_screen)
 	if (!buf)
 	{
 		gfx_con.mute = false;
-		EPRINTFARGS("Payload file is missing!\n(%s)", path);
+		EPRINTFARGS("Arquivo payload ausente!\n(%s)", path);
 
 		goto out;
 	}
@@ -175,7 +175,7 @@ static void _launch_payload(char *path, bool update, bool clear_screen)
 	if (size > 0x30000)
 	{
 		gfx_con.mute = false;
-		EPRINTF("Payload is too big!");
+		EPRINTF("Payload grande demais!");
 
 		goto out;
 	}
@@ -213,7 +213,7 @@ out:
 	if (!update)
 	{
 		gfx_con.mute = false;
-		EPRINTF("Failed to launch payload!");
+		EPRINTF("Falha ao iniciar payload!");
 	}
 }
 
@@ -244,7 +244,7 @@ static void _launch_payloads()
 	{
 		// Build configuration menu.
 		ments[0].type    = MENT_BACK;
-		ments[0].caption = "Back";
+		ments[0].caption = "Voltar";
 
 		ments[1].type    = MENT_CHGLINE;
 
@@ -263,7 +263,7 @@ static void _launch_payloads()
 	if (i > 0)
 	{
 		memset(&ments[i + 2], 0, sizeof(ment_t));
-		menu_t menu = { ments, "Choose a payload", 0, 0 };
+		menu_t menu = { ments, "Escolha um payload", 0, 0 };
 
 		file_sec = (char *)tui_do_menu(&menu);
 
@@ -278,7 +278,7 @@ static void _launch_payloads()
 		}
 	}
 	else
-		EPRINTF("No payloads found.");
+		EPRINTF("Nenhum payload encontrado.");
 
 	if (file_sec)
 	{
@@ -316,14 +316,14 @@ static void _launch_ini_list()
 	// Check that ini files exist and parse them.
 	if (ini_parse(&ini_list_sections, "bootloader/ini", true))
 	{
-		EPRINTF("No .ini files in bootloader/ini!");
+		EPRINTF("Nenhum .ini em bootloader/ini!");
 		goto parse_failed;
 	}
 
 	// Build configuration menu.
 	ments = (ment_t *)malloc(sizeof(ment_t) * (max_entries + 3));
 	ments[0].type    = MENT_BACK;
-	ments[0].caption = "Back";
+	ments[0].caption = "Voltar";
 
 	ments[1].type    = MENT_CHGLINE;
 
@@ -351,7 +351,7 @@ static void _launch_ini_list()
 	{
 		memset(&ments[sec_idx], 0, sizeof(ment_t));
 		menu_t menu = {
-			ments, "Launch ini entries", 0, 0
+		ments, "Entradas ini", 0, 0
 		};
 
 		cfg_sec = (ini_sec_t *)tui_do_menu(&menu);
@@ -370,7 +370,7 @@ static void _launch_ini_list()
 
 			if (emummc_path && !emummc_set_path(emummc_path))
 			{
-				EPRINTF("emupath is wrong!");
+				EPRINTF("emupath invalido!");
 				goto wrong_emupath;
 			}
 		}
@@ -383,7 +383,7 @@ static void _launch_ini_list()
 		}
 	}
 	else
-		EPRINTF("No extra configs found.");
+		EPRINTF("Nenhuma config extra encontrada.");
 
 parse_failed:
 	if (!cfg_sec)
@@ -452,7 +452,7 @@ static void _launch_config()
 	// Build configuration menu.
 	ments = (ment_t *)malloc(sizeof(ment_t) * (max_entries + 6));
 	ments[0].type    = MENT_BACK;
-	ments[0].caption = "Back";
+	ments[0].caption = "Voltar";
 
 	ments[1].type    = MENT_CHGLINE;
 
@@ -461,7 +461,7 @@ static void _launch_config()
 	ments[2].handler = _launch_payloads;
 
 	ments[3].type    = MENT_HANDLER;
-	ments[3].caption = "More configs...";
+	ments[3].caption = "Mais configs...";
 	ments[3].handler = _launch_ini_list;
 
 	ments[4].type    = MENT_CHGLINE;
@@ -489,14 +489,14 @@ static void _launch_config()
 	if (sec_idx < 6)
 	{
 		ments[sec_idx].type    = MENT_CAPTION;
-		ments[sec_idx].caption = "No main configs found...";
+		ments[sec_idx].caption = "Nenhuma config principal...";
 		ments[sec_idx].color   = TXT_CLR_WARNING;
 		sec_idx++;
 	}
 
 	memset(&ments[sec_idx], 0, sizeof(ment_t));
 	menu_t menu = {
-		ments, "Launch configurations", 0, 0
+		ments, "Configuracoes de inicializacao", 0, 0
 	};
 
 	cfg_sec = (ini_sec_t *)tui_do_menu(&menu);
@@ -515,7 +515,7 @@ static void _launch_config()
 
 		if (emummc_path && !emummc_set_path(emummc_path))
 		{
-			EPRINTF("emupath is wrong!");
+			EPRINTF("emupath invalido!");
 			goto wrong_emupath;
 		}
 	}
@@ -530,7 +530,7 @@ static void _launch_config()
 parse_failed:
 	if (!cfg_sec)
 	{
-		gfx_printf("\nPress any key...\n");
+		gfx_printf("\nPressione qualquer tecla...\n");
 		goto out;
 	}
 
@@ -596,9 +596,9 @@ static void _nyx_load_run()
 		h_cfg.errors |= ERR_SYSOLD_NYX;
 
 		gfx_con_setpos(0, 0);
-		WPRINTF("Old Nyx GUI found! There will be dragons!\n");
-		WPRINTF("\nUpdate bootloader folder!\n\n");
-		WPRINTF("Press any key...");
+		WPRINTF("Nyx GUI antiga encontrada!\n");
+		WPRINTF("\nAtualize a pasta bootloader!\n\n");
+		WPRINTF("Pressione qualquer tecla...");
 
 		msleep(1000);
 		btn_wait();
@@ -980,7 +980,7 @@ skip_list:
 		else if (emummc_path && !emummc_set_path(emummc_path))
 		{
 			gfx_con.mute = false;
-			EPRINTF("emupath is wrong!");
+			EPRINTF("emupath invalido!");
 			goto wrong_emupath;
 		}
 
@@ -995,7 +995,7 @@ wrong_emupath:
 
 error:
 		gfx_con.mute = false;
-		gfx_printf("\nPress any key...\n");
+		gfx_printf("\nPressione qualquer tecla...\n");
 		display_backlight_brightness(h_cfg.backlight, 1000);
 		msleep(500);
 		btn_wait();
@@ -1073,19 +1073,19 @@ static void _show_errors()
 
 		if (h_cfg.errors & ERR_SD_BOOT_EN)
 		{
-			WPRINTF("Failed to init or mount SD!\n");
+			WPRINTF("Falha ao iniciar ou montar SD!\n");
 
 			// Clear the module bits as to not cram the error screen.
 			h_cfg.errors &= ~(ERR_LIBSYS_LP0 | ERR_LIBSYS_MTC);
 		}
 
 		if (h_cfg.errors & ERR_LIBSYS_LP0)
-			WPRINTF("Missing LP0 (sleep) lib!\n");
+			WPRINTF("Biblioteca LP0 (sleep) ausente!\n");
 		if (h_cfg.errors & ERR_LIBSYS_MTC)
-			WPRINTF("Missing Minerva lib!\n");
+			WPRINTF("Biblioteca Minerva ausente!\n");
 
 		if (h_cfg.errors & (ERR_LIBSYS_LP0 | ERR_LIBSYS_MTC))
-			WPRINTF("\nUpdate bootloader folder!\n\n");
+			WPRINTF("\nAtualize a pasta bootloader!\n\n");
 
 		if (h_cfg.errors & ERR_EXCEPTION)
 		{
@@ -1093,7 +1093,7 @@ static void _show_errors()
 			switch (*excp_type)
 			{
 			case EXCP_TYPE_WDT:
-				WPRINTF("Hang detected in LP0/Minerva!");
+				WPRINTF("Travamento detectado em LP0/Minerva!");
 				break;
 			case EXCP_TYPE_RESET:
 				WPRINTF("RESET");
@@ -1117,17 +1117,17 @@ static void _show_errors()
 
 		if (h_cfg.errors & ERR_L4T_KERNEL)
 		{
-			WPRINTF("L4T Kernel panic occurred!\n");
+			WPRINTF("Panic do kernel L4T ocorreu!\n");
 			if (!(h_cfg.errors & ERR_SD_BOOT_EN))
 			{
 				if (!sd_save_to_file((void *)PSTORE_ADDR, PSTORE_SZ, "L4T_panic.bin"))
-					WPRINTF("PSTORE saved to L4T_panic.bin");
+					WPRINTF("PSTORE salvo em L4T_panic.bin");
 				pstore_buf_t *buf = (pstore_buf_t *)(PSTORE_ADDR + PSTORE_LOG_OFFSET);
 				if (buf->sig == PSTORE_RAM_SIG && buf->size && buf->size < 0x80000)
 				{
 					u32 log_offset = PSTORE_ADDR + PSTORE_LOG_OFFSET + sizeof(pstore_buf_t);
 					if (!sd_save_to_file((void *)log_offset, buf->size, "L4T_panic.txt"))
-						WPRINTF("Log saved to L4T_panic.txt");
+					WPRINTF("Log salvo em L4T_panic.txt");
 				}
 			}
 			gfx_puts("\n");
@@ -1143,11 +1143,11 @@ static void _show_errors()
 			b = (b << 0)  | (b << 4);
 			u32 color = r | g | b;
 
-			WPRINTF("HOS panic occurred!\n");
-			gfx_printf("Color: %k####%k, Code: %02X\n\n", color, TXT_CLR_DEFAULT, panic_status);
+			WPRINTF("Panic do HOS ocorreu!\n");
+			gfx_printf("Cor: %k####%k, Codigo: %02X\n\n", color, TXT_CLR_DEFAULT, panic_status);
 		}
 
-		WPRINTF("Press any key...");
+		WPRINTF("Pressione qualquer tecla...");
 
 		msleep(1000); // Guard against injection VOL+.
 		btn_wait();
@@ -1382,47 +1382,47 @@ static void _about()
 ment_t ment_cinfo[] = {
 	MDEF_BACK(),
 	MDEF_CHGLINE(),
-	MDEF_CAPTION("---- SoC Info ----", TXT_CLR_CYAN_L),
+	MDEF_CAPTION("---- Info do SoC ----", TXT_CLR_CYAN_L),
 	MDEF_HANDLER("Fuses", print_fuseinfo),
 	MDEF_CHGLINE(),
-	MDEF_CAPTION("-- Storage Info --", TXT_CLR_CYAN_L),
+	MDEF_CAPTION("-- Info de armazenamento --", TXT_CLR_CYAN_L),
 	MDEF_HANDLER("eMMC",    print_mmc_info),
-	MDEF_HANDLER("SD Card", print_sdcard_info),
+	MDEF_HANDLER("Cartao SD", print_sdcard_info),
 	MDEF_CHGLINE(),
-	MDEF_CAPTION("------ Misc ------", TXT_CLR_CYAN_L),
-	MDEF_HANDLER("Battery", print_battery_info),
+	MDEF_CAPTION("------ Diversos ------", TXT_CLR_CYAN_L),
+	MDEF_HANDLER("Bateria", print_battery_info),
 	MDEF_END()
 };
 
-menu_t menu_cinfo = { ment_cinfo, "Console Info", 0, 0 };
+menu_t menu_cinfo = { ment_cinfo, "Info do Console", 0, 0 };
 
 ment_t ment_tools[] = {
 	MDEF_BACK(),
 	MDEF_CHGLINE(),
-	MDEF_CAPTION("-------- Other -------", TXT_CLR_WARNING),
+	MDEF_CAPTION("-------- Outros -------", TXT_CLR_WARNING),
 	MDEF_HANDLER("AutoRCM", menu_autorcm),
 	MDEF_END()
 };
 
-menu_t menu_tools = { ment_tools, "Tools", 0, 0 };
+menu_t menu_tools = { ment_tools, "Ferramentas", 0, 0 };
 
 power_state_t STATE_POWER_OFF           = POWER_OFF_RESET;
 power_state_t STATE_REBOOT_RCM          = REBOOT_RCM;
 power_state_t STATE_REBOOT_BYPASS_FUSES = REBOOT_BYPASS_FUSES;
 
 ment_t ment_top[] = {
-	MDEF_HANDLER("Launch", _launch_config),
+	MDEF_HANDLER("Iniciar", _launch_config),
 	MDEF_CAPTION("---------------", TXT_CLR_GREY_DM),
-	MDEF_MENU("Tools",        &menu_tools),
-	MDEF_MENU("Console info", &menu_cinfo),
+	MDEF_MENU("Ferramentas",     &menu_tools),
+	MDEF_MENU("Info do console", &menu_cinfo),
 	MDEF_CAPTION("---------------", TXT_CLR_GREY_DM),
-	MDEF_HANDLER("Reload", _ipl_reload),
-	MDEF_HANDLER("Load Nyx", launch_nyx),
-	MDEF_HANDLER_EX("Reboot (OFW)", &STATE_REBOOT_BYPASS_FUSES, power_set_state_ex),
-	MDEF_HANDLER_EX("Reboot (RCM)", &STATE_REBOOT_RCM,          power_set_state_ex),
-	MDEF_HANDLER_EX("Power off",    &STATE_POWER_OFF,           power_set_state_ex),
+	MDEF_HANDLER("Recarregar", _ipl_reload),
+	MDEF_HANDLER("Abrir interface", launch_nyx),
+	MDEF_HANDLER_EX("Reiniciar (OFW)", &STATE_REBOOT_BYPASS_FUSES, power_set_state_ex),
+	MDEF_HANDLER_EX("Reiniciar (RCM)", &STATE_REBOOT_RCM,          power_set_state_ex),
+	MDEF_HANDLER_EX("Desligar",        &STATE_POWER_OFF,           power_set_state_ex),
 	MDEF_CAPTION("---------------", TXT_CLR_GREY_DM),
-	MDEF_HANDLER("About", _about),
+	MDEF_HANDLER("Sobre", _about),
 	MDEF_END()
 };
 

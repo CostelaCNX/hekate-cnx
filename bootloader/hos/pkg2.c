@@ -340,18 +340,18 @@ static int _decompress_kip(pkg2_kip1_info_t *ki, u32 sectsToDecomp)
 
 		u32 comp_size = hdr.sections[sect_idx].size_comp;
 		u32 output_size = hdr.sections[sect_idx].size_decomp;
-		gfx_printf("Decomping '%s', sect %d, size %d..\n", (char *)hdr.name, sect_idx, comp_size);
+		gfx_printf("Descompactando '%s', secao %d, tam. %d..\n", (char *)hdr.name, sect_idx, comp_size);
 		if (blz_uncompress_srcdest(src_data, comp_size, dst_data, output_size) == 0)
 		{
 			gfx_con.mute = false;
-			gfx_printf("%kERROR decomping sect %d of '%s'!%k\n", TXT_CLR_ERROR, sect_idx, (char *)hdr.name, TXT_CLR_DEFAULT);
+			gfx_printf("%kERRO ao descompactar secao %d de '%s'!%k\n", TXT_CLR_ERROR, sect_idx, (char *)hdr.name, TXT_CLR_DEFAULT);
 			free(new_kip);
 
 			return 1;
 		}
 		else
 		{
-			DPRINTF("Done! Decompressed size is %d!\n", output_size);
+			DPRINTF("Concluido! Tamanho descompactado: %d!\n", output_size);
 		}
 		hdr.sections[sect_idx].size_comp = output_size;
 		src_data += comp_size;
@@ -437,7 +437,7 @@ const char *pkg2_patch_kips(link_t *info, char *patch_names)
 	if (patch_names == NULL || patch_names[0] == 0)
 		return NULL;
 
-	gfx_printf("%kPatching kips%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
+	gfx_printf("%kAplicando patches nos kips%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
 
 	static const u32 MAX_NUM_PATCHES_REQUESTED = sizeof(u32) * 8;
 	char *patches[MAX_NUM_PATCHES_REQUESTED];
@@ -603,7 +603,7 @@ const char *pkg2_patch_kips(link_t *info, char *patch_names)
 					{
 						if (sections_affected & BIT(section_idx))
 						{
-							gfx_printf("Applying '%s' on %s, sect %d\n", patchset->name, (char *)ki->kip1->name, section_idx);
+							gfx_printf("Aplicando '%s' em %s, secao %d\n", patchset->name, (char *)ki->kip1->name, section_idx);
 							for (const kip1_patch_t *patch = patchset->patches; patch != NULL && patch->src_data != NULL; patch++)
 							{
 								// Check if patch is in current section.
@@ -614,7 +614,7 @@ const char *pkg2_patch_kips(link_t *info, char *patch_names)
 								if (!patch->length)
 								{
 									gfx_con.mute = false;
-									gfx_printf("%kPatch empty!%k\n", TXT_CLR_ERROR, TXT_CLR_DEFAULT);
+									gfx_printf("%kPatch vazio!%k\n", TXT_CLR_ERROR, TXT_CLR_DEFAULT);
 									return patchset->name; // MUST stop here as it's not probably intended.
 								}
 
@@ -625,12 +625,12 @@ const char *pkg2_patch_kips(link_t *info, char *patch_names)
 									(memcmp(&kip_sect_data[patch_offset], patch->dst_data, patch->length) != 0))
 								{
 									gfx_con.mute = false;
-									gfx_printf("%kPatch mismatch at 0x%x!%k\n", TXT_CLR_ERROR, patch_offset, TXT_CLR_DEFAULT);
+									gfx_printf("%kPatch divergente em 0x%x!%k\n", TXT_CLR_ERROR, patch_offset, TXT_CLR_DEFAULT);
 									return patchset->name; // MUST stop here as kip is likely corrupt.
 								}
 								else
 								{
-									DPRINTF("Patching %d bytes at offset 0x%x\n", patch->length, patch_offset);
+									DPRINTF("Aplicando patch de %d bytes no offset 0x%x\n", patch->length, patch_offset);
 									memcpy(&kip_sect_data[patch_offset], patch->dst_data, patch->length);
 								}
 							}
@@ -655,7 +655,7 @@ const char *pkg2_patch_kips(link_t *info, char *patch_names)
 					emu_cfg.fs_ver -= 2;
 
 				// Inject emuMMC code.
-				gfx_printf("Injecting emuMMC. FS ID: %d\n", emu_cfg.fs_ver);
+				gfx_printf("Injetando emuMMC. ID FS: %d\n", emu_cfg.fs_ver);
 				if (_kipm_inject("bootloader/sys/emummc.kipm", "FS", ki))
 					return "emummc";
 

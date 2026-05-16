@@ -187,7 +187,7 @@ const pkg1_id_t *pkg1_identify(u8 *pkg1)
 
 	memcpy(build_date, hdr->timestamp, 14);
 	build_date[14] = 0;
-	gfx_printf("Found pkg1 ('%s').\n\n", build_date);
+	gfx_printf("pkg1 encontrado ('%s').\n\n", build_date);
 
 	for (int i = ARRAY_SIZE(_pkg1_ids) - 1; i >= 0; i--)
 		if (!memcmp(hdr->timestamp, _pkg1_ids[i].id, 8))
@@ -314,7 +314,7 @@ void pkg1_secmon_patch(void *hos_ctxt, u32 secmon_base, bool t210b01)
 		return;
 
 	// Patch Secmon.
-	gfx_printf("%kPatching Secure Monitor%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
+	gfx_printf("%kAplicando patch no Secure Monitor%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
 	for (u32 i = 0; secmon_patchset[i].off != 0xFFFFFFFF; i++)
 		*(vu32 *)(secmon_base + secmon_patchset[i].off) = secmon_patchset[i].val;
 }
@@ -337,7 +337,7 @@ void pkg1_warmboot_patch(void *hos_ctxt)
 		warmboot_patchset = _warmboot_4_patchset;
 		break;
 	}
-	gfx_printf("%kPatching Warmboot%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
+	gfx_printf("%kAplicando patch no Warmboot%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
 	for (u32 i = 0; warmboot_patchset[i].off != 0xFFFFFFFF; i++)
 		*(vu32 *)(ctxt->pkg1_id->warmboot_base + warmboot_patchset[i].off) = warmboot_patchset[i].val;
 }

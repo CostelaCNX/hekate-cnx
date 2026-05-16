@@ -355,7 +355,7 @@ static int _hos_keygen(pkg1_eks_t *eks, u32 mkey, tsec_ctxt_t *tsec_ctxt, bool s
 		tsec_ctxt->fw = sd_file_read("bootloader/sys/thk.bin", NULL);
 		if (!tsec_ctxt->fw)
 		{
-			_hos_crit_error("Failed to load thk.bin");
+			_hos_crit_error("Falha ao carregar thk.bin");
 			return 1;
 		}
 
@@ -379,7 +379,7 @@ static int _hos_keygen(pkg1_eks_t *eks, u32 mkey, tsec_ctxt_t *tsec_ctxt, bool s
 		// We rely on racing conditions, make sure we cover even the unluckiest cases.
 		if (retries > 15)
 		{
-			_hos_crit_error("Failed to get TSEC keys.");
+			_hos_crit_error("Falha ao obter chaves TSEC.");
 			return 1;
 		}
 	}
@@ -569,28 +569,28 @@ try_load:
 
 		if (wrong_pkg1)
 		{
-			_hos_crit_error("Wrong pkg1 flashed:");
-			EPRINTFARGS("%s pkg1 on %s!",
+			_hos_crit_error("pkg1 incorreto gravado:");
+			EPRINTFARGS("pkg1 %s em %s!",
 				!h_cfg.t210b01 ? "Mariko" : "Erista", !h_cfg.t210b01 ? "Erista" : "Mariko");
 		}
 		else
 		{
-			_hos_crit_error("Unknown pkg1 version.");
-			EPRINTFARGS("HOS version not supported!%s",
-				(emu_cfg.enabled && !h_cfg.emummc_force_disable) ? "\nOr emuMMC corrupt!" : "");
+			_hos_crit_error("Versao pkg1 desconhecida.");
+			EPRINTFARGS("Versao HOS nao suportada!%s",
+				(emu_cfg.enabled && !h_cfg.emummc_force_disable) ? "\nOu emuMMC corrompida!" : "");
 		}
 
 		// Try backup bootloader.
 		if (bootloader_offset != PKG1_BOOTLOADER_BACKUP_OFFSET)
 		{
-			EPRINTF("\nTrying backup bootloader...");
+			EPRINTF("\nTentando bootloader reserva...");
 			bootloader_offset = PKG1_BOOTLOADER_BACKUP_OFFSET;
 			goto try_load;
 		}
 
 		return 1;
 	}
-	gfx_printf("Identified pkg1 and mkey %d\n\n", ctxt->pkg1_id->mkey);
+	gfx_printf("pkg1 identificado e mkey %d\n\n", ctxt->pkg1_id->mkey);
 
 	// Read the correct eks for older HOS versions.
 	if (ctxt->pkg1_id->mkey <= HOS_MKEY_VER_600)
@@ -717,13 +717,13 @@ void hos_launch(ini_sec_t *cfg)
 		gfx_clear_grey(0x1B);
 	gfx_con_setpos(0, 0);
 
-	gfx_puts("Initializing...\n\n");
+	gfx_puts("Inicializando...\n\n");
 
 	// Initialize eMMC/emuMMC.
 	int res = emummc_storage_init_mmc();
 	if (res)
 	{
-		_hos_crit_error(res == 2 ? "Failed to init eMMC." : "Failed to init emuMMC.");
+		_hos_crit_error(res == 2 ? "Falha ao iniciar eMMC." : "Falha ao iniciar emuMMC.");
 
 		goto error;
 	}
@@ -731,14 +731,14 @@ void hos_launch(ini_sec_t *cfg)
 	// Check if SD Card is GPT.
 	if (sd_is_gpt())
 	{
-		_hos_crit_error("SD has GPT only! Run Fix Hybrid MBR!");
+		_hos_crit_error("SD tem apenas GPT! Rode Corrigir MBR hibrido!");
 		goto error;
 	}
 
 	// Try to parse config if present.
 	if (hos_parse_boot_config(&ctxt))
 	{
-		_hos_crit_error("Wrong ini cfg or missing/corrupt files!");
+		_hos_crit_error("Config ini errada ou arquivos ausentes/corrompidos!");
 		goto error;
 	}
 
@@ -750,7 +750,7 @@ void hos_launch(ini_sec_t *cfg)
 		{
 			emmc_end();
 
-			WPRINTF("\nRebooting to OFW in 5s...");
+			WPRINTF("\nReiniciando para OFW em 5s...");
 			msleep(5000);
 
 			power_set_state(REBOOT_BYPASS_FUSES);
@@ -767,7 +767,7 @@ void hos_launch(ini_sec_t *cfg)
 	{
 		if (ctxt.stock)
 		{
-			_hos_crit_error("Stock emuMMC is not supported yet!");
+			_hos_crit_error("emuMMC stock ainda nao e suportada!");
 			goto error;
 		}
 
@@ -776,7 +776,7 @@ void hos_launch(ini_sec_t *cfg)
 	}
 	else if (!emu_cfg.enabled && ctxt.emummc_forced)
 	{
-		_hos_crit_error("emuMMC is forced but not enabled!");
+		_hos_crit_error("emuMMC forcada, mas nao ativada!");
 		goto error;
 	}
 
@@ -806,7 +806,7 @@ void hos_launch(ini_sec_t *cfg)
 			hos_config_kip1patch(&ctxt, "nogc");
 	}
 
-	gfx_printf("Loaded config and pkg1\n%s mode\n", ctxt.stock ? "Stock" : "CFW");
+	gfx_printf("Config e pkg1 carregados\nModo %s\n", ctxt.stock ? "Stock" : "CFW");
 
 	// Check if secmon is exosphere.
 	if (ctxt.secmon)
@@ -825,7 +825,7 @@ void hos_launch(ini_sec_t *cfg)
 	// Generate keys.
 	if (_hos_keygen(ctxt.eks, mkey, &tsec_ctxt, ctxt.stock, is_exo))
 		goto error;
-	gfx_puts("Generated keys\n");
+	gfx_puts("Chaves geradas\n");
 
 	// Decrypt and unpack package1 if we require parts of it.
 	if (!ctxt.warmboot || !ctxt.secmon)
@@ -835,7 +835,7 @@ void hos_launch(ini_sec_t *cfg)
 		{
 			if (!pkg1_decrypt(ctxt.pkg1_id, ctxt.pkg1))
 			{
-				_hos_crit_error("Pkg1 decryption failed!");
+				_hos_crit_error("Falha ao descriptografar Pkg1!");
 
 				// Check if T210B01 BEK is missing or wrong.
 				if (h_cfg.t210b01)
@@ -843,9 +843,9 @@ void hos_launch(ini_sec_t *cfg)
 					u32 bek_vector[4] = {0};
 					se_aes_crypt_ecb(13, ENCRYPT, bek_vector, bek_vector, SE_KEY_128_SIZE);
 					if (bek_vector[0] == 0x59C14895) // Encrypted zeroes first 32bits.
-						EPRINTF("Pkg1 corrupt?");
+						EPRINTF("Pkg1 corrompido?");
 					else
-						EPRINTF("BEK is missing!");
+						EPRINTF("BEK ausente!");
 				}
 				goto error;
 			}
@@ -863,11 +863,11 @@ void hos_launch(ini_sec_t *cfg)
 				!is_exo ? (void *)ctxt.pkg1_id->secmon_base : NULL, NULL,
 				ctxt.pkg1_id, ctxt.pkg1 + pk1_offset);
 
-			gfx_puts("Decrypted & unpacked pkg1\n");
+			gfx_puts("pkg1 descriptografado e extraido\n");
 		}
 		else
 		{
-			_hos_crit_error("No mandatory pkg1 files provided!");
+			_hos_crit_error("Arquivos obrigatorios pkg1 nao fornecidos!");
 			goto error;
 		}
 	}
@@ -876,9 +876,9 @@ void hos_launch(ini_sec_t *cfg)
 	if (pkg1_warmboot_config(&ctxt, warmboot_base, ctxt.pkg1_id->fuses, mkey))
 	{
 		// Can only happen on T210B01.
-		_hos_crit_error("\nFailed to match warmboot with fuses!\nIf you continue, sleep wont work!");
+		_hos_crit_error("\nFalha ao combinar warmboot com fuses!\nSe continuar, sleep nao funcionara!");
 
-		gfx_puts("\nPress POWER to continue.\nPress VOL to go to the menu.\n");
+		gfx_puts("\nPressione POWER para continuar.\nPressione VOL para voltar ao menu.\n");
 		display_backlight_brightness(h_cfg.backlight, 1000);
 
 		if (!(btn_wait() & BTN_POWER))
@@ -893,7 +893,7 @@ void hos_launch(ini_sec_t *cfg)
 		// Patch warmboot on T210 to allow downgrading.
 		if (mkey >= HOS_MKEY_VER_700)
 		{
-			_hos_crit_error("No warmboot provided!");
+			_hos_crit_error("Nenhum warmboot fornecido!");
 			goto error;
 		}
 
@@ -906,23 +906,23 @@ void hos_launch(ini_sec_t *cfg)
 	else
 		pkg1_secmon_patch((void *)&ctxt, secmon_base, h_cfg.t210b01);
 
-	gfx_puts("Loaded warmboot and secmon\n");
+	gfx_puts("warmboot e secmon carregados\n");
 
 	// Read package2.
 	u8 *pkg2_nx_bc = _read_emmc_pkg2(&ctxt);
 	if (!pkg2_nx_bc)
 	{
-		_hos_crit_error("Pkg2 read failed!");
+		_hos_crit_error("Falha ao ler Pkg2!");
 		goto error;
 	}
 
-	gfx_puts("Read pkg2\n");
+	gfx_puts("Pkg2 lido\n");
 
 	// Decrypt package2 and parse KIP1 blobs in INI1 section.
 	pkg2_hdr_t *pkg2_hdr = pkg2_decrypt(ctxt.pkg2, mkey, is_exo);
 	if (!pkg2_hdr)
 	{
-		_hos_crit_error("Pkg2 decryption failed!\npkg1/pkg2 mismatch or old hekate!");
+		_hos_crit_error("Falha ao descriptografar Pkg2!\npkg1/pkg2 incompativel ou hekate antigo!");
 
 		// Clear EKS slot, in case something went wrong with tsec keygen.
 		_hos_eks_clear(mkey);
@@ -932,11 +932,11 @@ void hos_launch(ini_sec_t *cfg)
 	LIST_INIT(kip1_info);
 	if (pkg2_parse_kips(&kip1_info, pkg2_hdr, &ctxt.new_pkg2))
 	{
-		_hos_crit_error("INI1 parsing failed!");
+		_hos_crit_error("Falha ao interpretar INI1!");
 		goto error;
 	}
 
-	gfx_puts("Parsed ini1\n");
+	gfx_puts("ini1 interpretado\n");
 
 	// Use the kernel included in package2 in case we didn't load one already.
 	if (!ctxt.kernel)
@@ -957,7 +957,7 @@ void hos_launch(ini_sec_t *cfg)
 			ctxt.pkg2_kernel_id = pkg2_identify(kernel_hash);
 			if (!ctxt.pkg2_kernel_id)
 			{
-				_hos_crit_error("Failed to identify kernel!");
+				_hos_crit_error("Falha ao identificar kernel!");
 
 				goto error;
 			}
@@ -966,7 +966,7 @@ void hos_launch(ini_sec_t *cfg)
 			const kernel_patch_t *kernel_patchset = ctxt.pkg2_kernel_id->kernel_patchset;
 			if (kernel_patchset != NULL)
 			{
-				gfx_printf("%kPatching kernel%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
+				gfx_printf("%kAplicando patches no kernel%k\n", TXT_CLR_ORANGE, TXT_CLR_DEFAULT);
 				u32 *temp;
 				for (u32 i = 0; kernel_patchset[i].id != 0xFFFFFFFF; i++)
 				{
@@ -998,7 +998,7 @@ void hos_launch(ini_sec_t *cfg)
 
 		if (sd_fs.fs_type == FS_EXFAT && !exfat_compat)
 		{
-			_hos_crit_error("SD Card is exFAT but installed HOS driver\nonly supports FAT32!");
+			_hos_crit_error("SD e exFAT, mas o driver HOS instalado\nsuporta apenas FAT32!");
 
 			goto error;
 		}
@@ -1008,12 +1008,12 @@ void hos_launch(ini_sec_t *cfg)
 	const char *failed_patch = pkg2_patch_kips(&kip1_info, ctxt.kip1_patches);
 	if (failed_patch != NULL)
 	{
-		EHPRINTFARGS("Failed to apply '%s'!", failed_patch);
+		EHPRINTFARGS("Falha ao aplicar '%s'!", failed_patch);
 
 		bool emu_patch_failed = !strcmp(failed_patch, "emummc");
 		if (!emu_patch_failed)
 		{
-			gfx_puts("\nPress POWER to continue.\nPress VOL to go to the menu.\n");
+			gfx_puts("\nPressione POWER para continuar.\nPressione VOL para voltar ao menu.\n");
 			display_backlight_brightness(h_cfg.backlight, 1000);
 		}
 
@@ -1035,7 +1035,7 @@ void hos_launch(ini_sec_t *cfg)
 	// Close AHB aperture. Important when stock old secmon is used.
 	mc_disable_ahb_redirect();
 
-	gfx_printf("Rebuilt & loaded pkg2\n\n%kBooting...%k\n", TXT_CLR_GREENISH, TXT_CLR_DEFAULT);
+	gfx_printf("pkg2 reconstruido e carregado\n\n%kIniciando...%k\n", TXT_CLR_GREENISH, TXT_CLR_DEFAULT);
 
 	// Clear pkg1/pkg2 keys.
 	se_aes_key_clear(8);
@@ -1131,5 +1131,5 @@ error:
 	_free_launch_components(&ctxt);
 	emmc_end();
 
-	EPRINTF("\nFailed to launch HOS!");
+	EPRINTF("\nFalha ao iniciar HOS!");
 }

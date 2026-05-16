@@ -770,16 +770,16 @@ static lv_res_t _action_flash_linux_data(lv_obj_t * btns, const char * txt)
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
 	static const char *mbox_btn_map[] = { "\251", "\222OK", "\251", "" };
-	static const char *mbox_btn_map2[] = { "\223Delete Installation Files", "\221OK", "" };
+	static const char *mbox_btn_map2[] = { "\223Apagar arquivos de instalação", "\221OK", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 10 * 5);
 
-	lv_mbox_set_text(mbox, "#FF8000 Linux Flasher#");
+	lv_mbox_set_text(mbox, "#FF8000 Gravador Linux#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
-	lv_label_set_text(lbl_status, "#C7EA46 Status:# Flashing Linux...");
+	lv_label_set_text(lbl_status, "#C7EA46 Status:# Gravando Linux...");
 
 	// Create container to keep content inside.
 	lv_obj_t *h1 = lv_cont_create(mbox, NULL);
@@ -815,7 +815,7 @@ static lv_res_t _action_flash_linux_data(lv_obj_t * btns, const char * txt)
 	res = f_open(&fp, path, FA_READ);
 	if (res)
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Error:# Failed to open 1st part!");
+		lv_label_set_text(lbl_status, "#FFDD00 Erro:# Falha ao abrir a 1ª parte!");
 
 		goto exit;
 	}
@@ -858,7 +858,7 @@ static lv_res_t _action_flash_linux_data(lv_obj_t * btns, const char * txt)
 			res = f_open(&fp, path, FA_READ);
 			if (res)
 			{
-				s_printf(txt_buf, "#FFDD00 Error:# Failed to open part %d#", currPartIdx);
+				s_printf(txt_buf, "#FFDD00 Erro:# Falha ao abrir a parte %d#", currPartIdx);
 				lv_label_set_text(lbl_status, txt_buf);
 				manual_system_maintenance(true);
 
@@ -878,7 +878,7 @@ static lv_res_t _action_flash_linux_data(lv_obj_t * btns, const char * txt)
 
 		if (res)
 		{
-			lv_label_set_text(lbl_status, "#FFDD00 Error:# Reading from SD!");
+			lv_label_set_text(lbl_status, "#FFDD00 Erro:# Lendo do SD!");
 			manual_system_maintenance(true);
 
 			f_close(&fp);
@@ -899,7 +899,7 @@ static lv_res_t _action_flash_linux_data(lv_obj_t * btns, const char * txt)
 
 			if (retryCount >= 3)
 			{
-				lv_label_set_text(lbl_status, "#FFDD00 Error:# Writing to SD!");
+				lv_label_set_text(lbl_status, "#FFDD00 Erro:# Gravando no SD!");
 				manual_system_maintenance(true);
 
 				f_close(&fp);
@@ -1042,16 +1042,16 @@ static lv_res_t _action_check_flash_linux(lv_obj_t *btn)
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
 	static const char *mbox_btn_map[] = { "\251", "\222OK", "\251", "" };
-	static const char *mbox_btn_map2[] = { "\222Continue", "\222Cancel", "" };
+	static const char *mbox_btn_map2[] = { "\222Continuar", "\222Cancelar", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
 
-	lv_mbox_set_text(mbox, "#FF8000 Linux Flasher#");
+	lv_mbox_set_text(mbox, "#FF8000 Gravador Linux#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
-	lv_label_set_text(lbl_status, "#C7EA46 Status:# Searching for files and partitions...");
+	lv_label_set_text(lbl_status, "#C7EA46 Status:# Procurando arquivos e partições...");
 
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_top(mbox, true);
@@ -1066,7 +1066,7 @@ static lv_res_t _action_check_flash_linux(lv_obj_t *btn)
 	strcpy(path, "switchroot/install/l4t.00");
 	if (f_stat(path, NULL))
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Error:# Installation files not found!");
+		lv_label_set_text(lbl_status, "#FFDD00 Erro:# Arquivos de instalação não encontrados!");
 		goto error;
 	}
 
@@ -1074,7 +1074,7 @@ static lv_res_t _action_check_flash_linux(lv_obj_t *btn)
 	u32 size_sct = _get_available_l4t_partition();
 	if (!l4t_flash_ctxt.offset_sct || size_sct < 0x800000)
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Error:# No partition found!");
+		lv_label_set_text(lbl_status, "#FFDD00 Erro:# Nenhuma partição encontrada!");
 		goto error;
 	}
 
@@ -1112,7 +1112,7 @@ static lv_res_t _action_check_flash_linux(lv_obj_t *btn)
 			// If it exists, unaligned size for current part is not permitted.
 			if (!f_stat(path, NULL)) // NULL: Don't override current part fs info.
 			{
-				lv_label_set_text(lbl_status, "#FFDD00 Error:# The image is not aligned to 4 MiB!");
+				lv_label_set_text(lbl_status, "#FFDD00 Erro:# A imagem não está alinhada a 4 MiB!");
 				goto error;
 			}
 
@@ -1128,15 +1128,15 @@ static lv_res_t _action_check_flash_linux(lv_obj_t *btn)
 	// Check if image size is bigger than the partition available.
 	if (l4t_flash_ctxt.image_size_sct > size_sct)
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Error:# The image is bigger than the partition!");
+		lv_label_set_text(lbl_status, "#FFDD00 Erro:# A imagem é maior que a partição!");
 		goto error;
 	}
 
 	char *txt_buf = malloc(SZ_4K);
 	s_printf(txt_buf,
-		"#C7EA46 Status:# Found installation files and partition.\n"
-		"#00DDFF Offset:# %08x, #00DDFF Size:# %X, #00DDFF Image size:# %d MiB\n"
-		"\nDo you want to continue?", l4t_flash_ctxt.offset_sct, size_sct, l4t_flash_ctxt.image_size_sct >> 11);
+		"#C7EA46 Status:# Arquivos de instalação e partição encontrados.\n"
+		"#00DDFF Offset:# %08x, #00DDFF Tamanho:# %X, #00DDFF Tamanho da imagem:# %d MiB\n"
+		"\nDeseja continuar?", l4t_flash_ctxt.offset_sct, size_sct, l4t_flash_ctxt.image_size_sct >> 11);
 	lv_label_set_text(lbl_status, txt_buf);
 	free(txt_buf);
 	lv_mbox_add_btns(mbox, mbox_btn_map2, _action_flash_linux_data);
@@ -1207,16 +1207,16 @@ static lv_res_t _action_flash_android_data(lv_obj_t * btns, const char * txt)
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
 	static const char *mbox_btn_map[] = { "\251", "\222OK", "\251", "" };
-	static const char *mbox_btn_map2[] = { "\222Continue", "\222No", "" };
+	static const char *mbox_btn_map2[] = { "\222Continuar", "\222Não", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
 
-	lv_mbox_set_text(mbox, "#FF8000 Android Flasher#");
+	lv_mbox_set_text(mbox, "#FF8000 Gravador Android#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
-	lv_label_set_text(lbl_status, "#C7EA46 Status:# Searching for files and partitions...");
+	lv_label_set_text(lbl_status, "#C7EA46 Status:# Procurando arquivos e partições...");
 
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_top(mbox, true);
@@ -1233,7 +1233,7 @@ static lv_res_t _action_flash_android_data(lv_obj_t * btns, const char * txt)
 	// Validate GPT header.
 	if (memcmp(&gpt->header.signature, "EFI PART", 8) || gpt->header.num_part_ents > 128)
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Error:# No Android GPT was found!");
+		lv_label_set_text(lbl_status, "#FFDD00 Erro:# Nenhuma GPT Android encontrada!");
 		goto error;
 	}
 
@@ -1244,7 +1244,7 @@ static lv_res_t _action_flash_android_data(lv_obj_t * btns, const char * txt)
 	strcpy(path, "switchroot/install/boot.img");
 	if (f_stat(path, NULL))
 	{
-		s_printf(txt_buf, "#FF8000 Warning:# Kernel image not found!\n");
+		s_printf(txt_buf, "#FF8000 Aviso:# Imagem do kernel não encontrada!\n");
 		goto boot_img_not_found;
 	}
 
@@ -1276,19 +1276,19 @@ static lv_res_t _action_flash_android_data(lv_obj_t * btns, const char * txt)
 		}
 
 		if ((file_size >> 9) > size_sct)
-			s_printf(txt_buf, "#FF8000 Warning:# Kernel image too big!\n");
+			s_printf(txt_buf, "#FF8000 Aviso:# Imagem do kernel muito grande!\n");
 		else
 		{
 			sdmmc_storage_write(part_info.storage, offset_sct, file_size >> 9, buf);
 
-			s_printf(txt_buf, "#C7EA46 Success:# Kernel image flashed!\n");
+			s_printf(txt_buf, "#C7EA46 Sucesso:# Imagem do kernel gravada!\n");
 			f_unlink(path);
 		}
 
 		free(buf);
 	}
 	else
-		s_printf(txt_buf, "#FF8000 Warning:# Kernel partition not found!\n");
+		s_printf(txt_buf, "#FF8000 Aviso:# Partição do kernel não encontrada!\n");
 
 boot_img_not_found:
 	lv_label_set_text(lbl_status, txt_buf);
@@ -1302,7 +1302,7 @@ boot_img_not_found:
 		strcpy(path, "switchroot/install/twrp.img");
 		if (f_stat(path, NULL))
 		{
-			strcat(txt_buf, "#FF8000 Warning:# Recovery image not found!\n");
+			strcat(txt_buf, "#FF8000 Aviso:# Imagem de recovery não encontrada!\n");
 			goto recovery_not_found;
 		}
 	}
@@ -1338,18 +1338,18 @@ boot_img_not_found:
 		}
 
 		if ((file_size >> 9) > size_sct)
-			strcat(txt_buf, "#FF8000 Warning:# Recovery image too big!\n");
+			strcat(txt_buf, "#FF8000 Aviso:# Imagem de recovery muito grande!\n");
 		else
 		{
 			sdmmc_storage_write(part_info.storage, offset_sct, file_size >> 9, buf);
-			strcat(txt_buf, "#C7EA46 Success:# Recovery image flashed!\n");
+			strcat(txt_buf, "#C7EA46 Sucesso:# Imagem de recovery gravada!\n");
 			f_unlink(path);
 		}
 
 		free(buf);
 	}
 	else
-		strcat(txt_buf, "#FF8000 Warning:# Recovery partition not found!\n");
+		strcat(txt_buf, "#FF8000 Aviso:# Partição de recovery não encontrada!\n");
 
 recovery_not_found:
 	lv_label_set_text(lbl_status, txt_buf);
@@ -1362,7 +1362,7 @@ recovery_not_found:
 		strcpy(path, "switchroot/install/tegra210-icosa.dtb");
 		if (f_stat(path, NULL))
 		{
-			strcat(txt_buf, "#FF8000 Warning:# DTB image not found!");
+			strcat(txt_buf, "#FF8000 Aviso:# Imagem DTB não encontrada!");
 			goto dtb_not_found;
 		}
 	}
@@ -1398,18 +1398,18 @@ recovery_not_found:
 		}
 
 		if ((file_size >> 9) > size_sct)
-			strcat(txt_buf, "#FF8000 Warning:# DTB image too big!");
+			strcat(txt_buf, "#FF8000 Aviso:# Imagem DTB muito grande!");
 		else
 		{
 			sdmmc_storage_write(part_info.storage, offset_sct, file_size >> 9, buf);
-			strcat(txt_buf, "#C7EA46 Success:# DTB image flashed!");
+			strcat(txt_buf, "#C7EA46 Sucesso:# Imagem DTB gravada!");
 			f_unlink(path);
 		}
 
 		free(buf);
 	}
 	else
-		strcat(txt_buf, "#FF8000 Warning:# DTB partition not found!");
+		strcat(txt_buf, "#FF8000 Aviso:# Partição DTB não encontrada!");
 
 dtb_not_found:
 	lv_label_set_text(lbl_status, txt_buf);
@@ -1433,7 +1433,7 @@ error:
 	if (boot_recovery)
 	{
 		// If a Recovery partition was found, ask user if rebooting into it is wanted.
-		strcat(txt_buf,"\n\nDo you want to reboot into Recovery\nto finish Android installation?");
+		strcat(txt_buf,"\n\nDeseja reiniciar em Recovery\npara concluir a instalação do Android?");
 		lv_label_set_text(lbl_status, txt_buf);
 		lv_mbox_add_btns(mbox, mbox_btn_map2, _action_reboot_recovery);
 	}
@@ -1458,19 +1458,19 @@ static lv_res_t _action_flash_android(lv_obj_t *btn)
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char *mbox_btn_map[] = { "\222Continue", "\222Cancel", "" };
+	static const char *mbox_btn_map[] = { "\222Continuar", "\222Cancelar", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
 
-	lv_mbox_set_text(mbox, "#FF8000 Android Flasher#");
+	lv_mbox_set_text(mbox, "#FF8000 Gravador Android#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
 	lv_label_set_text(lbl_status,
-		"This will flash #C7EA46 Kernel#, #C7EA46 DTB# and #C7EA46 Recovery# if found.\n"
-		"These will be deleted after a successful flash.\n"
-		"Do you want to continue?");
+		"Isto gravará #C7EA46 Kernel#, #C7EA46 DTB# e #C7EA46 Recovery# se encontrados.\n"
+		"Eles serão apagados após uma gravação bem-sucedida.\n"
+		"Deseja continuar?");
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, _action_flash_android_data);
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
@@ -1603,14 +1603,14 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
 	static const char *mbox_btn_map[] =  { "\251", "\222OK", "\251", "" };
-	static const char *mbox_btn_map1[] = { "\222SD UMS", "\222Flash Linux", "\222Flash Android", "\221OK", "" };
-	static const char *mbox_btn_map2[] = { "\222SD UMS", "\222Flash Linux", "\221OK", "" };
-	static const char *mbox_btn_map3[] = { "\222SD UMS", "\222Flash Android", "\221OK", "" };
+	static const char *mbox_btn_map1[] = { "\222SD UMS", "\222Gravar Linux", "\222Gravar Android", "\221OK", "" };
+	static const char *mbox_btn_map2[] = { "\222SD UMS", "\222Gravar Linux", "\221OK", "" };
+	static const char *mbox_btn_map3[] = { "\222SD UMS", "\222Gravar Android", "\221OK", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
 
-	lv_mbox_set_text(mbox, "#FF8000 SD Partition Manager#");
+	lv_mbox_set_text(mbox, "#FF8000 Gerenciador de Partições SD#");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_top(mbox, true);
 
@@ -1618,14 +1618,14 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 
 	// Use safety wait if backup is not possible.
 	char *txt_buf = malloc(SZ_4K);
-	strcpy(txt_buf, "#FF8000 SD Partition Manager#\n\nSafety wait ends in ");
+	strcpy(txt_buf, "#FF8000 Gerenciador de Partições SD#\n\nEspera de segurança termina em ");
 	lv_mbox_set_text(mbox, txt_buf);
 
 	u32 seconds = 5;
 	u32 text_idx = strlen(txt_buf);
 	while (seconds)
 	{
-		s_printf(txt_buf + text_idx, "%d seconds...", seconds);
+		s_printf(txt_buf + text_idx, "%d segundos...", seconds);
 		lv_mbox_set_text(mbox, txt_buf);
 		manual_system_maintenance(true);
 		msleep(1000);
@@ -1633,9 +1633,9 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 	}
 
 	lv_mbox_set_text(mbox,
-		"#FF8000 SD Partition Manager#\n\n"
-		"#FFDD00 Warning: Do you really want to continue?!#\n\n"
-		"Press #FF8000 POWER# to Continue.\nPress #FF8000 VOL# to abort.");
+		"#FF8000 Gerenciador de Partições SD#\n\n"
+		"#FFDD00 Aviso: deseja mesmo continuar?!#\n\n"
+		"Pressione #FF8000 POWER# para continuar.\nPressione #FF8000 VOL# para abortar.");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	manual_system_maintenance(true);
 
@@ -1645,7 +1645,7 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 		goto exit;
 
 	// Start partitioning.
-	lv_mbox_set_text(mbox, "#FF8000 SD Partition Manager#");
+	lv_mbox_set_text(mbox, "#FF8000 Gerenciador de Partições SD#");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	manual_system_maintenance(true);
 
@@ -1675,36 +1675,36 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 	// Read current MBR.
 	sdmmc_storage_read(part_info.storage, 0, 1, &part_info.mbr_old);
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Initializing Ramdisk...");
-	lv_label_set_text(lbl_paths[0], "Please wait...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Inicializando Ramdisk...");
+	lv_label_set_text(lbl_paths[0], "Aguarde...");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	manual_system_maintenance(true);
 
 	// Initialize RAM disk.
 	if (ram_disk_init(&ram_fs, RAM_DISK_SZ))
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Error:# Failed to initialize Ramdisk!");
+		lv_label_set_text(lbl_status, "#FFDD00 Erro:# Falha ao inicializar Ramdisk!");
 		goto error;
 	}
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Backing up files...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Fazendo backup dos arquivos...");
 	manual_system_maintenance(true);
 
 	// Do full or hekate/Nyx backup.
 	if (_backup_and_restore_files(true, lbl_paths))
 	{
 		if (part_info.backup_possible)
-			lv_label_set_text(lbl_status, "#FFDD00 Error:# Failed to back up files!");
+			lv_label_set_text(lbl_status, "#FFDD00 Erro:# Falha ao fazer backup dos arquivos!");
 		else
-			lv_label_set_text(lbl_status, "#FFDD00 Error:# Failed to back up files!\nBootloader folder exceeds 1.2GB or corrupt!");
+			lv_label_set_text(lbl_status, "#FFDD00 Erro:# Backup falhou!\nPasta bootloader > 1,2GB ou corrompida!");
 
 		goto error;
 	}
 
 	f_unmount("sd:"); // Unmount SD card.
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Formatting FAT32 partition...");
-	lv_label_set_text(lbl_paths[0], "Please wait...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Formatando partição FAT32...");
+	lv_label_set_text(lbl_paths[0], "Aguarde...");
 	lv_label_set_text(lbl_paths[1], " ");
 	manual_system_maintenance(true);
 
@@ -1734,8 +1734,8 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 	if (mkfs_error)
 	{
 		// Failed to format.
-		s_printf((char *)buf, "#FFDD00 Error:# Failed to format disk (%d)!\n\n"
-			"Remove the SD card and check that is OK.\nIf not, format it, reinsert it and\npress #FF8000 POWER#!", mkfs_error);
+		s_printf((char *)buf, "#FFDD00 Erro:# Falha ao formatar disco (%d)!\n\n"
+			"Remova o SD e verifique-o.\nSe preciso, formate, reinsira e\npressione #FF8000 POWER#!", mkfs_error);
 
 		lv_label_set_text(lbl_status, (char *)buf);
 		lv_label_set_text(lbl_paths[0], " ");
@@ -1747,7 +1747,7 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 
 		sd_mount();
 
-		lv_label_set_text(lbl_status, "#00DDFF Status:# Restoring files...");
+		lv_label_set_text(lbl_status, "#00DDFF Status:# Restaurando arquivos...");
 		manual_system_maintenance(true);
 
 		// Restore backed up files back to SD.
@@ -1756,13 +1756,13 @@ static lv_res_t _sd_create_mbox_start_partitioning()
 			// Failed to restore files. Try again once more.
 			if (_backup_and_restore_files(false, lbl_paths))
 			{
-				lv_label_set_text(lbl_status, "#FFDD00 Error:# Failed to restore files!");
+				lv_label_set_text(lbl_status, "#FFDD00 Erro:# Falha ao restaurar arquivos!");
 				free(buf);
 				goto error;
 			}
 		}
 
-		lv_label_set_text(lbl_status, "#00DDFF Status:# Restored files but the operation failed!");
+		lv_label_set_text(lbl_status, "#00DDFF Status:# Arquivos restaurados, mas a operação falhou!");
 		f_unmount("ram:");
 		free(buf);
 		goto error;
@@ -1774,7 +1774,7 @@ mkfs_no_error:
 	// Remount sd card as it was unmounted from formatting it.
 	f_mount(&sd_fs, "sd:", 1); // Mount SD card.
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Restoring files...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Restaurando arquivos...");
 	manual_system_maintenance(true);
 
 	// Restore backed up files back to SD.
@@ -1783,7 +1783,7 @@ mkfs_no_error:
 		// Failed to restore files. Try again once more.
 		if (_backup_and_restore_files(false, lbl_paths))
 		{
-			lv_label_set_text(lbl_status, "#FFDD00 Error:# Failed to restore files!");
+			lv_label_set_text(lbl_status, "#FFDD00 Erro:# Falha ao restaurar arquivos!");
 			goto error;
 		}
 	}
@@ -1795,8 +1795,8 @@ mkfs_no_error:
 	// Set Volume label.
 	f_setlabel("0:SWITCH SD");
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Flashing partition table...");
-	lv_label_set_text(lbl_paths[0], "Please wait...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Gravando tabela de partições...");
+	lv_label_set_text(lbl_paths[0], "Aguarde...");
 	lv_label_set_text(lbl_paths[1], " ");
 	manual_system_maintenance(true);
 
@@ -1828,7 +1828,7 @@ mkfs_no_error:
 	}
 
 	sd_unmount();
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Done!");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Concluído!");
 	manual_system_maintenance(true);
 
 	// Set buttons depending on what user chose to create.
@@ -1870,14 +1870,14 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
 	static const char *mbox_btn_map[] =  { "\251", "\222OK", "\251", "" };
-	static const char *mbox_btn_map1[] = { "\222Flash Linux", "\222Flash Android", "\221OK", "" };
-	static const char *mbox_btn_map2[] = { "\222Flash Linux", "\221OK", "" };
-	static const char *mbox_btn_map3[] = { "\222Flash Android", "\221OK", "" };
+	static const char *mbox_btn_map1[] = { "\222Gravar Linux", "\222Gravar Android", "\221OK", "" };
+	static const char *mbox_btn_map2[] = { "\222Gravar Linux", "\221OK", "" };
+	static const char *mbox_btn_map3[] = { "\222Gravar Android", "\221OK", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
 
-	lv_mbox_set_text(mbox, "#FF8000 eMMC Partition Manager#");
+	lv_mbox_set_text(mbox, "#FF8000 Gerenciador de Partições eMMC#");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_top(mbox, true);
 
@@ -1885,14 +1885,14 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 
 	// Use safety wait if backup is not possible.
 	char *txt_buf = malloc(SZ_4K);
-	strcpy(txt_buf, "#FF8000 eMMC Partition Manager#\n\nSafety wait ends in ");
+	strcpy(txt_buf, "#FF8000 Gerenciador de Partições eMMC#\n\nEspera de segurança termina em ");
 	lv_mbox_set_text(mbox, txt_buf);
 
 	u32 seconds = 5;
 	u32 text_idx = strlen(txt_buf);
 	while (seconds)
 	{
-		s_printf(txt_buf + text_idx, "%d seconds...", seconds);
+		s_printf(txt_buf + text_idx, "%d segundos...", seconds);
 		lv_mbox_set_text(mbox, txt_buf);
 		manual_system_maintenance(true);
 		msleep(1000);
@@ -1900,9 +1900,9 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 	}
 
 	lv_mbox_set_text(mbox,
-		"#FF8000 eMMC Partition Manager#\n\n"
-		"#FFDD00 Warning: Do you really want to continue?!#\n\n"
-		"Press #FF8000 POWER# to Continue.\nPress #FF8000 VOL# to abort.");
+		"#FF8000 Gerenciador de Partições eMMC#\n\n"
+		"#FFDD00 Aviso: deseja mesmo continuar?!#\n\n"
+		"Pressione #FF8000 POWER# para continuar.\nPressione #FF8000 VOL# para abortar.");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	manual_system_maintenance(true);
 
@@ -1910,7 +1910,7 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 		goto exit;
 
 	// Start partitioning.
-	lv_mbox_set_text(mbox, "#FF8000 eMMC Partition Manager#");
+	lv_mbox_set_text(mbox, "#FF8000 Gerenciador de Partições eMMC#");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	manual_system_maintenance(true);
 
@@ -1923,14 +1923,14 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 	lv_obj_set_width(lbl_extra, (LV_HOR_RES / 9 * 6) - LV_DPI / 2);
 	lv_label_set_align(lbl_extra, LV_LABEL_ALIGN_CENTER);
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Initializing...");
-	lv_label_set_text(lbl_extra, "Please wait...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Inicializando...");
+	lv_label_set_text(lbl_extra, "Aguarde...");
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	manual_system_maintenance(true);
 
 	if (emmc_initialize(false))
 	{
-		lv_label_set_text(lbl_extra, "#FFDD00 Failed to init eMMC!#");
+		lv_label_set_text(lbl_extra, "#FFDD00 Falha ao inicializar eMMC!#");
 		goto exit;
 	}
 
@@ -1938,21 +1938,21 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 
 	if (!emummc_raw_derive_bis_keys())
 	{
-		lv_label_set_text(lbl_extra, "#FFDD00 For formatting USER partition,#\n#FFDD00 BIS keys are needed!#");
+		lv_label_set_text(lbl_extra, "#FFDD00 Para formatar a partição USER,#\n#FFDD00 as chaves BIS são necessárias!#");
 		emmc_end();
 		goto exit;
 	}
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Flashing partition table...");
-	lv_label_set_text(lbl_extra, "Please wait...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Gravando tabela de partições...");
+	lv_label_set_text(lbl_extra, "Aguarde...");
 	manual_system_maintenance(true);
 
 	// Prepare MBR and GPT header and partition entries and flash them.
 	if (_emmc_prepare_and_flash_mbr_gpt())
 		goto no_hos_user_part;
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Formatting USER partition...");
-	lv_label_set_text(lbl_extra, "Please wait...");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Formatando partição USER...");
+	lv_label_set_text(lbl_extra, "Aguarde...");
 	manual_system_maintenance(true);
 
 	// Get USER partition and configure BIS and FatFS.
@@ -1963,7 +1963,7 @@ static lv_res_t _emmc_create_mbox_start_partitioning()
 	if (!user_part)
 	{
 no_hos_user_part:
-		s_printf(txt_buf, "#FF0000 HOS USER partition doesn't exist!#\nRestore HOS backup first...");
+		s_printf(txt_buf, "#FF0000 A partição HOS USER não existe!#\nRestaure o backup HOS primeiro...");
 		lv_label_set_text(lbl_extra, txt_buf);
 
 		emmc_gpt_free(&gpt);
@@ -1989,7 +1989,7 @@ no_hos_user_part:
 
 	if (mkfs_error)
 	{
-		s_printf(txt_buf, "#FF0000 Failed (%d)!#\nPlease try again...\n", mkfs_error);
+		s_printf(txt_buf, "#FF0000 Falhou (%d)!#\nTente novamente...\n", mkfs_error);
 		lv_label_set_text(lbl_extra, txt_buf);
 
 		free(buff);
@@ -2032,7 +2032,7 @@ no_hos_user_part:
 		lv_btn_set_state(btn_flash_android, LV_BTN_STATE_INA);
 	}
 
-	lv_label_set_text(lbl_status, "#00DDFF Status:# Done!");
+	lv_label_set_text(lbl_status, "#00DDFF Status:# Concluído!");
 	manual_system_maintenance(true);
 
 	// Set buttons depending on what user chose to create.
@@ -2108,32 +2108,32 @@ static lv_res_t _create_mbox_partitioning_warn()
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char *mbox_btn_map[] = { "\222SD UMS", "\222Start", "\222Cancel", "" };
-	static const char *mbox_btn_map1[] = { "\222Start", "\222Cancel", "" };
+	static const char *mbox_btn_map[] = { "\222SD UMS", "\222Iniciar", "\222Cancelar", "" };
+	static const char *mbox_btn_map1[] = { "\222Iniciar", "\222Cancelar", "" };
 	lv_obj_t * mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 
 	char *txt_buf = malloc(SZ_4K);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
-	lv_mbox_set_text(mbox, "#FF8000 Partition Manager#");
+	lv_mbox_set_text(mbox, "#FF8000 Gerenciador de Partições#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
 
 	if (!part_info.emmc)
 	{
-		s_printf(txt_buf, "#FFDD00 Warning: This will partition the SD Card!#\n\n");
+		s_printf(txt_buf, "#FFDD00 Aviso: isto reparticionará o cartão SD!#\n\n");
 
 		if (part_info.backup_possible)
 		{
-			strcat(txt_buf, "#C7EA46 Your files will be backed up and restored!#\n"
-				"#FFDD00 Any other partition will be wiped!#");
+			strcat(txt_buf, "#C7EA46 Seus arquivos serão copiados e restaurados!#\n"
+				"#FFDD00 Qualquer outra partição será apagada!#");
 		}
 		else
 		{
-			strcat(txt_buf, "#FFDD00 Your files will be wiped!#\n"
-				"#FFDD00 Any other partition will be also wiped!#\n"
-				"#FFDD00 Use USB UMS to copy them over!#");
+			strcat(txt_buf, "#FFDD00 Seus arquivos serão apagados!#\n"
+				"#FFDD00 Qualquer outra partição também será apagada!#\n"
+				"#FFDD00 Use USB UMS para copiá-los antes!#");
 		}
 
 		lv_label_set_text(lbl_status, txt_buf);
@@ -2145,8 +2145,8 @@ static lv_res_t _create_mbox_partitioning_warn()
 	}
 	else
 	{
-		s_printf(txt_buf, "#FFDD00 Warning: This will partition the eMMC!#\n\n"
-						  "#FFDD00 The USER partition will also be formatted!#");
+		s_printf(txt_buf, "#FFDD00 Aviso: isto reparticionará a eMMC!#\n\n"
+						  "#FFDD00 A partição USER também será formatada!#");
 		lv_label_set_text(lbl_status, txt_buf);
 		lv_mbox_add_btns(mbox, mbox_btn_map1, _create_mbox_partitioning_option1);
 	}
@@ -2176,20 +2176,20 @@ static lv_res_t _create_mbox_partitioning_andr_part()
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char *mbox_btn_map[] = { "\222Legacy", "\222Dynamic", "" };
+	static const char *mbox_btn_map[] = { "\222Legado", "\222Dinâmico", "" };
 	lv_obj_t * mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 
 	lv_obj_set_width(mbox, LV_HOR_RES / 10 * 5);
-	lv_mbox_set_text(mbox, "#FF8000 Android Partitioning#");
+	lv_mbox_set_text(mbox, "#FF8000 Particionamento Android#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
 
 	lv_label_set_text(lbl_status,
-		"Please select a partition scheme:\n\n"
-		"#C7EA46 Dynamic:# Android 13+ (Preferred)\n"
-		"#C7EA46 Legacy:# Android 11\n");
+		"Selecione um esquema de partição:\n\n"
+		"#C7EA46 Dinâmico:# Android 13+ (preferido)\n"
+		"#C7EA46 Legado:# Android 11\n");
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, _create_mbox_partitioning_android);
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
@@ -2500,12 +2500,12 @@ static void _create_mbox_check_files_total_size()
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
 	static const char *mbox_btn_map[] = { "\251", "\222OK", "\251", "" };
-	static const char *mbox_btn_map2[] = { "\222Don't Backup", "\222OK", "" };
+	static const char *mbox_btn_map2[] = { "\222Não fazer backup", "\222OK", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
 
-	lv_mbox_set_text(mbox, "Analyzing SD card usage. This might take a while...");
+	lv_mbox_set_text(mbox, "Analisando uso do cartão SD. Isto pode demorar...");
 
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_top(mbox, true);
@@ -2525,17 +2525,17 @@ static void _create_mbox_check_files_total_size()
 	if (part_info.backup_possible)
 	{
 		s_printf(txt_buf,
-			"#96FF00 The SD Card files will be backed up automatically!#\n"
-			"#FFDD00 Any other partition will be wiped!#\n"
-			"#00DDFF Total files:# %d, #00DDFF Total size:# %d MiB", total_files, total_size >> 20);
+			"#96FF00 Os arquivos do SD serão salvos automaticamente!#\n"
+			"#FFDD00 Qualquer outra partição será apagada!#\n"
+			"#00DDFF Arquivos:# %d, #00DDFF Tamanho:# %d MiB", total_files, total_size >> 20);
 		lv_mbox_set_text(mbox, txt_buf);
 	}
 	else
 	{
 		lv_mbox_set_text(mbox,
-			"#FFDD00 The SD Card cannot be backed up automatically!#\n"
-			"#FFDD00 Any other partition will be also wiped!#\n\n"
-			"You will be asked to back up your files later via UMS.");
+			"#FFDD00 O SD não pode ser salvo automaticamente!#\n"
+			"#FFDD00 Qualquer outra partição também será apagada!#\n\n"
+			"Você será solicitado a salvar os arquivos via UMS.");
 	}
 
 	// Create container to keep content inside.
@@ -2546,7 +2546,7 @@ static void _create_mbox_check_files_total_size()
 
 	lv_obj_t *lbl_part = lv_label_create(h1, NULL);
 	lv_label_set_recolor(lbl_part, true);
-	lv_label_set_text(lbl_part, "#00DDFF Current MBR partition layout:#");
+	lv_label_set_text(lbl_part, "#00DDFF Layout atual de partições MBR:#");
 
 	// Read current MBR.
 	mbr_t mbr = { 0 };
@@ -2615,10 +2615,10 @@ static void _create_mbox_check_files_total_size()
 
 	// Print partition table info.
 	s_printf(txt_buf,
-		"Partition 0 - Type: %02x, Start: %08x, Size: %08x\n"
-		"Partition 1 - Type: %02x, Start: %08x, Size: %08x\n"
-		"Partition 2 - Type: %02x, Start: %08x, Size: %08x\n"
-		"Partition 3 - Type: %02x, Start: %08x, Size: %08x",
+		"Partição 0 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+		"Partição 1 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+		"Partição 2 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+		"Partição 3 - Tipo: %02x, Início: %08x, Tamanho: %08x",
 		mbr.partitions[0].type, mbr.partitions[0].start_sct, mbr.partitions[0].size_sct,
 		mbr.partitions[1].type, mbr.partitions[1].start_sct, mbr.partitions[1].size_sct,
 		mbr.partitions[2].type, mbr.partitions[2].start_sct, mbr.partitions[2].size_sct,
@@ -2651,7 +2651,7 @@ static lv_res_t _action_fix_mbr_gpt(lv_obj_t *btn)
 	lv_mbox_set_recolor_text(mbox, true);
 
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
-	lv_mbox_set_text(mbox, "#FF8000 Fix Hybrid MBR#");
+	lv_mbox_set_text(mbox, "#FF8000 Corrigir MBR híbrida#");
 
 	lv_obj_t *lbl_status = lv_label_create(mbox, NULL);
 	lv_label_set_recolor(lbl_status, true);
@@ -2669,7 +2669,7 @@ static lv_res_t _action_fix_mbr_gpt(lv_obj_t *btn)
 	// Try to init sd card. No need for valid MBR.
 	if (sd_mount() && !sd_get_card_initialized())
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Failed to init SD!#");
+		lv_label_set_text(lbl_status, "#FFDD00 Falha ao inicializar SD!#");
 		goto out;
 	}
 
@@ -2694,7 +2694,7 @@ static lv_res_t _action_fix_mbr_gpt(lv_obj_t *btn)
 	// Check if GPT is valid.
 	if (!gpt_partition_exists || memcmp(&gpt->header.signature, "EFI PART", 8) || gpt->header.num_part_ents > 128)
 	{
-		lv_label_set_text(lbl_status, "#FFDD00 Warning:# No valid GPT was found!");
+		lv_label_set_text(lbl_status, "#FFDD00 Aviso:# Nenhuma GPT válida foi encontrada!");
 
 		gpt_partition_exists = false;
 
@@ -2804,7 +2804,7 @@ static lv_res_t _action_fix_mbr_gpt(lv_obj_t *btn)
 check_changes:
 	if (!hybrid_mbr_changed && !has_mbr_attributes && !gpt_emummc_migrate_no)
 	{
-		lv_label_set_text(lbl_status, "#96FF00 Warning:# The Hybrid MBR needs no change!#");
+		lv_label_set_text(lbl_status, "#96FF00 Aviso:# A MBR híbrida não precisa de alteração!#");
 		goto out;
 	}
 
@@ -2813,24 +2813,24 @@ check_changes:
 	if (hybrid_mbr_changed)
 	{
 		// Current MBR info.
-		s_printf(txt_buf, "#00DDFF Current MBR Layout:#\n");
+		s_printf(txt_buf, "#00DDFF Layout MBR atual:#\n");
 		s_printf(txt_buf + strlen(txt_buf),
-			"Partition 0 - Type: %02x, Start: %08x, Size: %08x\n"
-			"Partition 1 - Type: %02x, Start: %08x, Size: %08x\n"
-			"Partition 2 - Type: %02x, Start: %08x, Size: %08x\n"
-			"Partition 3 - Type: %02x, Start: %08x, Size: %08x\n\n",
+			"Partição 0 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+			"Partição 1 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+			"Partição 2 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+			"Partição 3 - Tipo: %02x, Início: %08x, Tamanho: %08x\n\n",
 			mbr[0].partitions[0].type, mbr[0].partitions[0].start_sct, mbr[0].partitions[0].size_sct,
 			mbr[0].partitions[1].type, mbr[0].partitions[1].start_sct, mbr[0].partitions[1].size_sct,
 			mbr[0].partitions[2].type, mbr[0].partitions[2].start_sct, mbr[0].partitions[2].size_sct,
 			mbr[0].partitions[3].type, mbr[0].partitions[3].start_sct, mbr[0].partitions[3].size_sct);
 
 		// New MBR info.
-		s_printf(txt_buf + strlen(txt_buf), "#00DDFF New MBR Layout:#\n");
+		s_printf(txt_buf + strlen(txt_buf), "#00DDFF Novo layout MBR:#\n");
 		s_printf(txt_buf + strlen(txt_buf),
-			"Partition 0 - Type: %02x, Start: %08x, Size: %08x\n"
-			"Partition 1 - Type: %02x, Start: %08x, Size: %08x\n"
-			"Partition 2 - Type: %02x, Start: %08x, Size: %08x\n"
-			"Partition 3 - Type: %02x, Start: %08x, Size: %08x",
+			"Partição 0 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+			"Partição 1 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+			"Partição 2 - Tipo: %02x, Início: %08x, Tamanho: %08x\n"
+			"Partição 3 - Tipo: %02x, Início: %08x, Tamanho: %08x",
 			mbr[1].partitions[0].type, mbr[1].partitions[0].start_sct, mbr[1].partitions[0].size_sct,
 			mbr[1].partitions[1].type, mbr[1].partitions[1].start_sct, mbr[1].partitions[1].size_sct,
 			mbr[1].partitions[2].type, mbr[1].partitions[2].start_sct, mbr[1].partitions[2].size_sct,
@@ -2838,13 +2838,13 @@ check_changes:
 	}
 	else if (has_mbr_attributes || gpt_emummc_migrate_no || gpt_oob_empty_part_no)
 	{
-		s_printf(txt_buf, "#00DDFF The following need to be corrected:#\n");
+		s_printf(txt_buf, "#00DDFF Os itens abaixo precisam ser corrigidos:#\n");
 		if (has_mbr_attributes)
-			s_printf(txt_buf + strlen(txt_buf), "- MBR attributes\n");
+			s_printf(txt_buf + strlen(txt_buf), "- Atributos MBR\n");
 		if (gpt_emummc_migrate_no)
-			s_printf(txt_buf + strlen(txt_buf), "- emuMMC GPT Partition address and size\n");
+			s_printf(txt_buf + strlen(txt_buf), "- Endereço e tamanho da partição GPT da emuMMC\n");
 		if (gpt_oob_empty_part_no)
-			s_printf(txt_buf + strlen(txt_buf), "- GPT OOB/Empty Partitions (removal)\n");
+			s_printf(txt_buf + strlen(txt_buf), "- Partições GPT fora dos limites/vazias (remoção)\n");
 	}
 
 	lv_label_set_text(lbl_status, txt_buf);
@@ -2857,8 +2857,8 @@ check_changes:
 	lv_label_set_align(lbl_status, LV_LABEL_ALIGN_CENTER);
 
 	lv_label_set_text(lbl_status,
-		"#FF8000 Warning: Do you really want to continue?!#\n\n"
-		"Press #FF8000 POWER# to Continue.\nPress #FF8000 VOL# to abort.");
+		"#FF8000 Aviso: deseja mesmo continuar?!#\n\n"
+		"Pressione #FF8000 POWER# para continuar.\nPressione #FF8000 VOL# para abortar.");
 
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_top(mbox, true);
@@ -2955,10 +2955,10 @@ check_changes:
 
 		sd_unmount();
 
-		lv_label_set_text(lbl_status, "#96FF00 The new Hybrid MBR was written successfully!#");
+		lv_label_set_text(lbl_status, "#96FF00 A nova MBR híbrida foi gravada com sucesso!#");
 	}
 	else
-		lv_label_set_text(lbl_status, "#FFDD00 Warning: The Hybrid MBR Fix was canceled!#");
+		lv_label_set_text(lbl_status, "#FFDD00 Aviso: a correção da MBR híbrida foi cancelada!#");
 
 out:
 	free(gpt);
@@ -2977,11 +2977,11 @@ lv_res_t create_window_partition_manager(bool emmc)
 
 	if (!emmc)
 	{
-		win = nyx_create_standard_window(SYMBOL_SD" SD Partition Manager", NULL);
-		lv_win_add_btn(win, NULL, SYMBOL_MODULES_ALT" Fix Hybrid MBR/GPT", _action_fix_mbr_gpt);
+		win = nyx_create_standard_window(SYMBOL_SD" Gerenciador de Partições SD", NULL);
+		lv_win_add_btn(win, NULL, SYMBOL_MODULES_ALT" Corrigir MBR/GPT híbrida", _action_fix_mbr_gpt);
 	}
 	else
-		win = nyx_create_standard_window(SYMBOL_CHIP" eMMC Partition Manager", NULL);
+		win = nyx_create_standard_window(SYMBOL_CHIP" Gerenciador de Partições eMMC", NULL);
 
 	static lv_style_t bar_hos_bg, bar_emu_bg, bar_l4t_bg, bar_and_bg;
 	static lv_style_t bar_hos_ind, bar_emu_ind, bar_l4t_ind, bar_and_ind;
@@ -3054,7 +3054,7 @@ lv_res_t create_window_partition_manager(bool emmc)
 		{
 			lv_obj_t *lbl = lv_label_create(h1, NULL);
 			lv_label_set_recolor(lbl, true);
-			lv_label_set_text(lbl, "#FFDD00 Failed to init SD!#");
+			lv_label_set_text(lbl, "#FFDD00 Falha ao inicializar SD!#");
 			return LV_RES_OK;
 		}
 
@@ -3071,7 +3071,7 @@ lv_res_t create_window_partition_manager(bool emmc)
 		{
 			lv_obj_t *lbl = lv_label_create(h1, NULL);
 			lv_label_set_recolor(lbl, true);
-			lv_label_set_text(lbl, "#FFDD00 Failed to init eMMC!#");
+			lv_label_set_text(lbl, "#FFDD00 Falha ao inicializar eMMC!#");
 			return LV_RES_OK;
 		}
 		emmc_set_partition(EMMC_GPP);
@@ -3118,7 +3118,7 @@ lv_res_t create_window_partition_manager(bool emmc)
 
 	lv_obj_t *lbl = lv_label_create(h1, NULL);
 	lv_label_set_recolor(lbl, true);
-	lv_label_set_text(lbl, "Choose #FFDD00 new# partition layout:");
+	lv_label_set_text(lbl, "Escolha o #FFDD00 novo# layout de partições:");
 
 	// Create disk layout blocks.
 	// HOS partition block.
@@ -3289,17 +3289,17 @@ lv_res_t create_window_partition_manager(bool emmc)
 	if (!emmc)
 	{
 		lv_label_set_static_text(lbl_notes,
-			"Note 1: Only up to #C7EA46 1.2GB# can be backed up. If more, you will be asked to back them manually at the next step.\n"
-			"Note 2: Resized emuMMC formats the USER partition. A save data manager can be used to move them over.\n"
-			"Note 3: The #C7EA46 Flash Linux# and #C7EA46 Flash Android# will flash files if suitable partitions and installer files are found.\n");
+			"Nota 1: backup automático até #C7EA46 1,2GB#. Acima disso, use backup manual.\n"
+			"Nota 2: emuMMC reduzida formata USER. Migre saves com gerenciador de saves.\n"
+			"Nota 3: #C7EA46 Gravar Linux/Android# usa partições e instaladores compatíveis.\n");
 		lv_obj_align(lbl_notes, lbl_and, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 6 * 2);
 	}
 	else
 	{
 		lv_label_set_static_text(lbl_notes,
-			"Note 1: Any partition existing after the selected ones gets removed from the table.\n"
-			"Note 2: The HOS USER partition gets formatted. A save data manager can be used to move them over.\n"
-			"Note 3: The #C7EA46 Flash Linux# and #C7EA46 Flash Android# will flash files if suitable partitions and installer files are found.\n");
+			"Nota 1: partições após as selecionadas serão removidas.\n"
+			"Nota 2: HOS USER será formatada. Migre saves com gerenciador de saves.\n"
+			"Nota 3: #C7EA46 Gravar Linux/Android# usa partições e instaladores compatíveis.\n");
 		lv_obj_align(lbl_notes, lbl_and, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 6 * 4);
 	}
 
@@ -3320,7 +3320,7 @@ lv_res_t create_window_partition_manager(bool emmc)
 	btn_flash_l4t = lv_btn_create(h1, NULL);
 	label_btn = lv_label_create(btn_flash_l4t, NULL);
 	lv_btn_set_fit(btn_flash_l4t, true, true);
-	lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Flash Linux");
+	lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Gravar Linux");
 	if (!emmc)
 		lv_obj_align(btn_flash_l4t, btn1, LV_ALIGN_OUT_RIGHT_MID, LV_DPI / 3, 0);
 	else
@@ -3344,15 +3344,15 @@ lv_res_t create_window_partition_manager(bool emmc)
 	switch (part_type_and)
 	{
 	case 0: // Disable Flash Android button if partition not found.
-		lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Flash Android");
+		lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Gravar Android");
 		lv_obj_set_click(btn_flash_android, false);
 		lv_btn_set_state(btn_flash_android, LV_BTN_STATE_INA);
 		break;
 	case 1: // Android 11.
-		lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Flash Android 11");
+		lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Gravar Android 11");
 		break;
 	case 2: // Android 13+
-		lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Flash Android 13+");
+		lv_label_set_static_text(label_btn, SYMBOL_DOWNLOAD"  Gravar Android 13+");
 		break;
 	}
 	lv_obj_align(btn_flash_android, btn_flash_l4t, LV_ALIGN_OUT_RIGHT_MID, LV_DPI / 3, 0);
@@ -3362,7 +3362,7 @@ lv_res_t create_window_partition_manager(bool emmc)
 	btn1 = lv_btn_create(h1, NULL);
 	label_btn = lv_label_create(btn1, NULL);
 	lv_btn_set_fit(btn1, true, true);
-	lv_label_set_static_text(label_btn, SYMBOL_SD"  Next Step");
+	lv_label_set_static_text(label_btn, SYMBOL_SD"  Próxima Etapa");
 	lv_obj_align(btn1, h1, LV_ALIGN_IN_TOP_RIGHT, 0, LV_DPI * 5);
 	lv_btn_set_action(btn1, LV_BTN_ACTION_CLICK, _create_mbox_partitioning_next);
 	part_info.partition_button = btn1;

@@ -44,7 +44,7 @@ void tui_sbar(bool force_update)
 	max17050_get_property(MAX17050_VCELL, &battVoltCurr);
 
 	gfx_clear_partial_grey(0x30, 1256, 24);
-	gfx_printf("%K%k Battery: %d.%d%% (%d mV) - Charge:", TXT_CLR_GREY_D, TXT_CLR_GREY,
+	gfx_printf("%K%k Bateria: %d.%d%% (%d mV) - Carga:", TXT_CLR_GREY_D, TXT_CLR_GREY,
 		(battPercent >> 8) & 0xFF, (battPercent & 0xFF) / 26, battVoltCurr);
 
 	max17050_get_property(MAX17050_Current, &battVoltCurr);
@@ -140,9 +140,9 @@ void *tui_do_menu(menu_t *menu)
 
 		// Print errors, help and battery status.
 		gfx_con_setpos(0,  1127);
-		gfx_printf("%k Warning: %kNyx is missing!", TXT_CLR_RED_D, TXT_CLR_GREY_M);
+		gfx_printf("%k Aviso: %kNyx ausente!", TXT_CLR_RED_D, TXT_CLR_GREY_M);
 		gfx_con_setpos(0,  1191);
-		gfx_printf("%k VOL: Move up/down\n PWR: Select option%k", TXT_CLR_GREY_M, TXT_CLR_DEFAULT);
+		gfx_printf("%k VOL: Move para cima/baixo\n PWR: Seleciona opcao%k", TXT_CLR_GREY_M, TXT_CLR_DEFAULT);
 
 		display_backlight_brightness(h_cfg.backlight, 1000);
 

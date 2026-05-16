@@ -177,7 +177,7 @@ int parse_pkg3(launch_ctxt_t *ctxt, const char *path)
 	{
 		gfx_printf("Atmosphere %d.%d.%d-%08x via PKG3\n"
 			"Max HOS: %d.%d.%d\n"
-			"Unpacking..  ",
+			"Extraindo..  ",
 			pkg3_meta->version >> 24, (pkg3_meta->version >> 16) & 0xFF, (pkg3_meta->version >> 8) & 0xFF, pkg3_meta->git_rev,
 			pkg3_meta->hos_ver >> 24, (pkg3_meta->hos_ver >> 16) & 0xFF, (pkg3_meta->hos_ver >> 8) & 0xFF);
 
@@ -211,7 +211,7 @@ int parse_pkg3(launch_ctxt_t *ctxt, const char *path)
 				{
 					if (!strcmp(curr_pkg3_cnt[i].name, pkg3_kip1_skip[k]))
 					{
-						gfx_printf("Skipped %s.kip1 from PKG3\n", curr_pkg3_cnt[i].name);
+						gfx_printf("%s.kip1 ignorado do PKG3\n", curr_pkg3_cnt[i].name);
 						should_skip = true;
 						break;
 					}
@@ -222,7 +222,7 @@ int parse_pkg3(launch_ctxt_t *ctxt, const char *path)
 				merge_kip_t *mkip1 = (merge_kip_t *)malloc(sizeof(merge_kip_t));
 				mkip1->kip1 = content;
 				list_append(&ctxt->kip1_list, &mkip1->link);
-				DPRINTF("Loaded %s.kip1 from PKG3 (size %08X)\n", curr_pkg3_cnt[i].name, curr_pkg3_cnt[i].size);
+				DPRINTF("%s.kip1 carregado do PKG3 (tam. %08X)\n", curr_pkg3_cnt[i].name, curr_pkg3_cnt[i].size);
 				break;
 
 			case CNT_TYPE_KRN:
@@ -258,7 +258,7 @@ int parse_pkg3(launch_ctxt_t *ctxt, const char *path)
 			f_read(&fp, content, curr_pkg3_cnt[i].size, NULL);
 		}
 
-		gfx_printf("Done!\n");
+		gfx_printf("Concluido!\n");
 		f_close(&fp);
 
 		ctxt->pkg3 = pkg3;

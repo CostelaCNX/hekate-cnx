@@ -90,7 +90,7 @@ static int _config_kip1(launch_ctxt_t *ctxt, const char *value)
 
 					return 1;
 				}
-				DPRINTF("Loaded kip1 from SD (size %08X)\n", size);
+				DPRINTF("kip1 carregado do SD (tam. %08X)\n", size);
 				list_append(&ctxt->kip1_list, &mkip1->link);
 
 				i++;
@@ -110,7 +110,7 @@ static int _config_kip1(launch_ctxt_t *ctxt, const char *value)
 
 			return 1;
 		}
-		DPRINTF("Loaded kip1 from SD (size %08X)\n", size);
+		DPRINTF("kip1 carregado do SD (tam. %08X)\n", size);
 		list_append(&ctxt->kip1_list, &mkip1->link);
 	}
 
@@ -150,7 +150,7 @@ static int _config_svcperm(launch_ctxt_t *ctxt, const char *value)
 {
 	if (*value == '1')
 	{
-		DPRINTF("Disabled SVC verification\n");
+		DPRINTF("Verificacao SVC desativada\n");
 		ctxt->svcperm = true;
 	}
 
@@ -161,7 +161,7 @@ static int _config_debugmode(launch_ctxt_t *ctxt, const char *value)
 {
 	if (*value == '1')
 	{
-		DPRINTF("Enabled Debug mode\n");
+		DPRINTF("Modo debug ativado\n");
 		ctxt->debugmode = true;
 	}
 
@@ -172,7 +172,7 @@ static int _config_stock(launch_ctxt_t *ctxt, const char *value)
 {
 	if (*value == '1')
 	{
-		DPRINTF("Enabled stock mode\n");
+		DPRINTF("Modo stock ativado\n");
 		ctxt->stock = true;
 	}
 
@@ -183,7 +183,7 @@ static int _config_emummc_forced(launch_ctxt_t *ctxt, const char *value)
 {
 	if (*value == '1')
 	{
-		DPRINTF("Forced emuMMC\n");
+		DPRINTF("emuMMC forcada\n");
 		ctxt->emummc_forced = true;
 	}
 
@@ -194,7 +194,7 @@ static int _config_kernel_proc_id(launch_ctxt_t *ctxt, const char *value)
 {
 	if (*value == '1')
 	{
-		DPRINTF("Enabled kernel process id send/recv patching\n");
+		DPRINTF("Patch send/recv de process id do kernel ativado\n");
 		ctxt->patch_krn_proc_id = true;
 	}
 
@@ -205,7 +205,7 @@ static int _config_dis_exo_user_exceptions(launch_ctxt_t *ctxt, const char *valu
 {
 	if (*value == '1')
 	{
-		DPRINTF("Disabled exosphere user exception handlers\n");
+		DPRINTF("Handlers de excecao de usuario exosphere desativados\n");
 		ctxt->exo_ctx.no_user_exceptions = true;
 	}
 
@@ -216,7 +216,7 @@ static int _config_exo_user_pmu_access(launch_ctxt_t *ctxt, const char *value)
 {
 	if (*value == '1')
 	{
-		DPRINTF("Enabled user access to PMU\n");
+		DPRINTF("Acesso de usuario a PMU ativado\n");
 		ctxt->exo_ctx.user_pmu = true;
 	}
 
@@ -230,7 +230,7 @@ static int _config_exo_force_mem_mode(launch_ctxt_t *ctxt, const char *value)
 
 	if (*value == '1')
 	{
-		DPRINTF("Enabled Auto Memory Mode\n");
+		DPRINTF("Modo de memoria automatico ativado\n");
 		*ctxt->exo_ctx.force_mem_mode = true;
 	}
 
@@ -244,7 +244,7 @@ static int _config_exo_usb3_force(launch_ctxt_t *ctxt, const char *value)
 
 	if (*value == '1')
 	{
-		DPRINTF("Enabled USB 3.0\n");
+		DPRINTF("USB 3.0 ativado\n");
 		*ctxt->exo_ctx.usb3_force = true;
 	}
 
@@ -258,7 +258,7 @@ static int _config_exo_cal0_blanking(launch_ctxt_t *ctxt, const char *value)
 
 	if (*value == '1')
 	{
-		DPRINTF("Enabled prodinfo blanking\n");
+		DPRINTF("Ocultacao de prodinfo ativada\n");
 		*ctxt->exo_ctx.cal0_blank = true;
 	}
 
@@ -272,7 +272,7 @@ static int _config_exo_cal0_writes_enable(launch_ctxt_t *ctxt, const char *value
 
 	if (*value == '1')
 	{
-		DPRINTF("Enabled prodinfo writes\n");
+		DPRINTF("Gravacao em prodinfo ativada\n");
 		*ctxt->exo_ctx.cal0_allow_writes_sys = true;
 	}
 
@@ -350,7 +350,7 @@ int hos_parse_boot_config(launch_ctxt_t *ctxt)
 				if (_config_handlers[i].handler(ctxt, kv->val))
 				{
 					gfx_con.mute = false;
-					EPRINTFARGS("Error while loading %s:\n%s", kv->key, kv->val);
+					EPRINTFARGS("Erro ao carregar %s:\n%s", kv->key, kv->val);
 
 					return 1;
 				}

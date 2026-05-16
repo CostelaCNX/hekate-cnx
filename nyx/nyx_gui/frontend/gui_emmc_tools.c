@@ -19,6 +19,7 @@
 #include <bdk.h>
 
 #include "gui.h"
+#include <libs/lvgl/lv_themes/lv_theme_hekate.h>
 #include "gui_emmc_tools.h"
 #include "gui_tools.h"
 #include "fe_emmc_tools.h"
@@ -50,7 +51,7 @@ static void _create_window_backup_restore(emmcPartType_t type, const char* win_l
 
 	char win_label_full[80];
 
-	s_printf(win_label_full, "%s%s", emmc_btn_ctxt.restore ? SYMBOL_DOWNLOAD"  Restore " : SYMBOL_UPLOAD"  Backup ", win_label+3);
+	s_printf(win_label_full, "%s%s", emmc_btn_ctxt.restore ? SYMBOL_DOWNLOAD"  Restaurar " : SYMBOL_UPLOAD"  Backup ", win_label+3);
 
 	lv_obj_t *win = nyx_create_standard_window(win_label_full, NULL);
 
@@ -102,11 +103,11 @@ static void _create_window_backup_restore(emmcPartType_t type, const char* win_l
 	static lv_style_t bar_teal_bg, bar_teal_ind, bar_orange_bg, bar_orange_ind, bar_white_ind;
 
 	lv_style_copy(&bar_teal_bg, lv_theme_get_current()->bar.bg);
-	bar_teal_bg.body.main_color = LV_COLOR_HEX(0x005a47);
+	bar_teal_bg.body.main_color = LV_COLOR_HEX(0x5a0000);
 	bar_teal_bg.body.grad_color = bar_teal_bg.body.main_color;
 
 	lv_style_copy(&bar_teal_ind, lv_theme_get_current()->bar.indic);
-	bar_teal_ind.body.main_color = LV_COLOR_HEX(0x00FFC9);
+	bar_teal_ind.body.main_color = COLOR_HOS_TURQUOISE_EX(n_cfg.theme_color);
 	bar_teal_ind.body.grad_color = bar_teal_ind.body.main_color;
 
 	lv_style_copy(&bar_orange_bg, lv_theme_get_current()->bar.bg);
@@ -279,13 +280,13 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 	lv_obj_t *win;
 
 	emmc_btn_ctxt.restore = false;
-	if (strcmp(lv_label_get_text(lv_obj_get_child(btn, NULL)), SYMBOL_UPLOAD"  Backup eMMC"))
+	if (strcmp(lv_label_get_text(lv_obj_get_child(btn, NULL)), SYMBOL_UPLOAD"  Backup da eMMC"))
 		emmc_btn_ctxt.restore = true;
 
 	if (!emmc_btn_ctxt.restore)
 		win = nyx_create_standard_window(SYMBOL_SD" Backup", NULL);
 	else
-		win = nyx_create_standard_window(SYMBOL_SD" Restore", NULL);
+		win = nyx_create_standard_window(SYMBOL_SD" Restaurar", NULL);
 
 	static lv_style_t h_style;
 	lv_style_copy(&h_style, &lv_style_transp);
@@ -305,7 +306,7 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 	lv_label_set_static_text(label_sep, "");
 
 	lv_obj_t *label_txt = lv_label_create(h1, NULL);
-	lv_label_set_static_text(label_txt, "Full");
+	lv_label_set_static_text(label_txt, "Completo");
 	lv_obj_set_style(label_txt, lv_theme_get_current()->label.prim);
 	lv_obj_align(label_txt, label_sep, LV_ALIGN_OUT_BOTTOM_LEFT, LV_DPI / 4, -LV_DPI * 3 / 10);
 
@@ -333,16 +334,16 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 	if (!emmc_btn_ctxt.restore)
 	{
 		lv_label_set_static_text(label_txt2,
-			"Allows you to backup the BOOT physical partitions.\n"
-			"They contain the BCT, keys and various package1.\n"
-			"#FF8000 These are paired with the RAW GPP backup.#");
+			"Permite fazer backup das partições físicas BOOT.\n"
+			"Elas contêm BCT, chaves e vários package1.\n"
+			"#FF8000 São pareadas com o backup RAW GPP.#");
 	}
 	else
 	{
 		lv_label_set_static_text(label_txt2,
-			"Allows you to restore the BOOT physical partitions.\n"
-			"They contain the BCT, keys and various package1.\n"
-			"#FF8000 These are paired with the RAW GPP restore.#");
+			"Permite restaurar as partições físicas BOOT.\n"
+			"Elas contêm BCT, chaves e vários package1.\n"
+			"#FF8000 São pareadas com a restauração RAW GPP.#");
 	}
 	lv_obj_set_style(label_txt2, &hint_small_style);
 	lv_obj_align(label_txt2, btn1, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 3);
@@ -363,16 +364,16 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 	if (!emmc_btn_ctxt.restore)
 	{
 		lv_label_set_static_text(label_txt2,
-			"Allows you to backup the GPP physical partition.\n"
-			"It contains, CAL0, various package2, SYSTEM, USER, etc.\n"
-			"#FF8000 This is paired with the BOOT0/1 backups.#");
+			"Permite fazer backup da partição física GPP.\n"
+			"Ela contém CAL0, vários package2, SYSTEM, USER, etc.\n"
+			"#FF8000 É pareada com os backups BOOT0/1.#");
 	}
 	else
 	{
 		lv_label_set_static_text(label_txt2,
-			"Allows you to restore the GPP physical partition.\n"
-			"It contains, CAL0, various package2, SYSTEM, USER, etc.\n"
-			"#FF8000 This is paired with the BOOT0/1 restore.#");
+			"Permite restaurar a partição física GPP.\n"
+			"Ela contém CAL0, vários package2, SYSTEM, USER, etc.\n"
+			"#FF8000 É pareada com a restauração BOOT0/1.#");
 	}
 	lv_obj_set_style(label_txt2, &hint_small_style);
 	lv_obj_align(label_txt2, btn2, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 3);
@@ -390,7 +391,7 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 	lv_label_set_static_text(label_sep, "");
 
 	lv_obj_t *label_txt3 = lv_label_create(h2, NULL);
-	lv_label_set_static_text(label_txt3, "GPP Partitions");
+	lv_label_set_static_text(label_txt3, "Partições GPP");
 	lv_obj_set_style(label_txt3, lv_theme_get_current()->label.prim);
 	lv_obj_align(label_txt3, label_sep, LV_ALIGN_OUT_BOTTOM_LEFT, LV_DPI / 4, -LV_DPI * 4 / 21);
 
@@ -414,15 +415,15 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 	if (!emmc_btn_ctxt.restore)
 	{
 		lv_label_set_static_text(label_txt4,
-			"Allows you to backup the partitions from RAW GPP except\n"
-			"USER. It contains, CAL0, various package2, SYSTEM, etc.\n"
-			"#FF8000 This is an incomplete backup.#");
+			"Permite fazer backup das partições da RAW GPP exceto\n"
+			"USER. Contém CAL0, vários package2, SYSTEM, etc.\n"
+			"#FF8000 Este é um backup incompleto.#");
 	}
 	else
 	{
 		lv_label_set_static_text(label_txt4,
-			"Allows you to restore ALL partitions from RAW GPP\n"
-			"It contains, CAL0, various package2, SYSTEM, USER, etc.\n");
+			"Permite restaurar TODAS as partições da RAW GPP.\n"
+			"Contém CAL0, vários package2, SYSTEM, USER, etc.\n");
 	}
 
 	lv_obj_set_style(label_txt4, &hint_small_style);
@@ -441,8 +442,8 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 		label_txt4 = lv_label_create(h2, NULL);
 		lv_label_set_recolor(label_txt4, true);
 		lv_label_set_static_text(label_txt4,
-			"Allows you to backup the USER partition from RAW GPP.\n"
-			"#FF8000 This is an incomplete backup.#\n");
+			"Permite fazer backup da partição USER da RAW GPP.\n"
+			"#FF8000 Este é um backup incompleto.#\n");
 		lv_obj_set_style(label_txt4, &hint_small_style);
 		lv_obj_align(label_txt4, btn4, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 3);
 	}
@@ -462,7 +463,7 @@ lv_res_t create_window_backup_restore_tool(lv_obj_t *btn)
 
 	lv_obj_t *sd_emummc_raw = lv_btn_create(h3, NULL);
 	nyx_create_onoff_button(lv_theme_get_current(), h3,
-		sd_emummc_raw, SYMBOL_SD" SD emuMMC Raw Partition", _emmc_backup_buttons_raw_toggle, false);
+		sd_emummc_raw, SYMBOL_SD" Partição RAW emuMMC SD", _emmc_backup_buttons_raw_toggle, false);
 	emmc_btn_ctxt.raw_emummc = false;
 
 	return LV_RES_OK;
