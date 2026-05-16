@@ -7,6 +7,7 @@
  *      INCLUDES
  *********************/
 #include "lv_draw_label.h"
+#include "lv_draw_line.h"
 #include "lv_draw_rbasic.h"
 #include "../lv_misc/lv_math.h"
 
@@ -29,6 +30,10 @@ typedef uint8_t cmd_state_t;
  *  STATIC PROTOTYPES
  **********************/
 static uint8_t hex_char_to_num(char hex);
+static uint8_t ptbr_accent_type(uint32_t letter);
+static uint32_t ptbr_base_letter(uint32_t letter);
+static void ptbr_draw_accent(const lv_point_t * pos, const lv_area_t * mask, uint8_t letter_w,
+                             uint8_t letter_h, uint8_t accent, lv_color_t color, lv_opa_t opa);
 
 /**********************
  *  STATIC VARIABLES
@@ -182,8 +187,14 @@ void lv_draw_label(const lv_area_t * coords, const lv_area_t * mask, const lv_st
 
             if(cmd_state == CMD_STATE_IN) color = recolor;
 
-            letter_fp(&pos, mask, font, letter, color, opa);
-            letter_w = lv_font_get_width(font, letter);
+            uint32_t letter_draw = ptbr_base_letter(letter);
+            uint8_t accent = ptbr_accent_type(letter);
+
+            letter_fp(&pos, mask, font, letter_draw, color, opa);
+            letter_w = lv_font_get_width(font, letter_draw);
+            if(accent) {
+                ptbr_draw_accent(&pos, mask, letter_w, lv_font_get_height(font), accent, color, opa);
+            }
 
             if(letter_w > 0){
                 pos.x += letter_w + style->text.letter_space;
@@ -261,4 +272,111 @@ static uint8_t hex_char_to_num(char hex)
     }
 
     return result;
+}
+
+static uint8_t ptbr_accent_type(uint32_t letter)
+{
+    switch(letter) {
+        case 0x00C1: case 0x00C9: case 0x00CD: case 0x00D3: case 0x00DA:
+        case 0x00E1: case 0x00E9: case 0x00ED: case 0x00F3: case 0x00FA:
+            return 1; /* acute */
+        case 0x00C0: case 0x00E0:
+            return 2; /* grave */
+        case 0x00C2: case 0x00CA: case 0x00D4:
+        case 0x00E2: case 0x00EA: case 0x00F4:
+            return 3; /* circumflex */
+        case 0x00C3: case 0x00D5: case 0x00E3: case 0x00F5:
+            return 4; /* tilde */
+        case 0x00DC: case 0x00FC:
+            return 5; /* diaeresis */
+        case 0x00C7: case 0x00E7:
+            return 6; /* cedilla */
+        default:
+            return 0;
+    }
+}
+
+static uint32_t ptbr_base_letter(uint32_t letter)
+{
+    switch(letter) {
+        case 0x00C0: case 0x00C1: case 0x00C2: case 0x00C3:
+            return 'A';
+        case 0x00C7:
+            return 'C';
+        case 0x00C9: case 0x00CA:
+            return 'E';
+        case 0x00CD:
+            return 'I';
+        case 0x00D3: case 0x00D4: case 0x00D5:
+            return 'O';
+        case 0x00DA: case 0x00DC:
+            return 'U';
+        case 0x00E0: case 0x00E1: case 0x00E2: case 0x00E3:
+            return 'a';
+        case 0x00E7:
+            return 'c';
+        case 0x00E9: case 0x00EA:
+            return 'e';
+        case 0x00ED:
+            return 'i';
+        case 0x00F3: case 0x00F4: case 0x00F5:
+            return 'o';
+        case 0x00FA: case 0x00FC:
+            return 'u';
+        default:
+            return letter;
+    }
+}
+
+static void ptbr_draw_line(lv_coord_t x1, lv_coord_t y1, lv_coord_t x2, lv_coord_t y2,
+                           const lv_area_t * mask, lv_style_t * style, lv_opa_t opa)
+{
+    lv_point_t p1 = { .x = x1, .y = y1 };
+    lv_point_t p2 = { .x = x2, .y = y2 };
+    lv_draw_line(&p1, &p2, mask, style, opa);
+}
+
+static void ptbr_draw_accent(const lv_point_t * pos, const lv_area_t * mask, uint8_t letter_w,
+                             uint8_t letter_h, uint8_t accent, lv_color_t color, lv_opa_t opa)
+{
+    if(letter_w < 3) return;
+
+    lv_style_t style;
+    lv_style_copy(&style, &lv_style_plain);
+    style.line.color = color;
+    style.line.opa = LV_OPA_COVER;
+    style.line.width = letter_h >= 24 ? 2 : 1;
+    style.line.rounded = 0;
+
+    lv_coord_t cx = pos->x + (letter_w / 2);
+    lv_coord_t top = pos->y + (letter_h >= 24 ? 1 : 0);
+    lv_coord_t span = letter_w >= 10 ? 4 : 3;
+
+    switch(accent) {
+        case 1:
+            ptbr_draw_line(cx - 1, top + 3, cx + span / 2, top, mask, &style, opa);
+            break;
+        case 2:
+            ptbr_draw_line(cx - span / 2, top, cx + 1, top + 3, mask, &style, opa);
+            break;
+        case 3:
+            ptbr_draw_line(cx - span, top + 3, cx, top, mask, &style, opa);
+            ptbr_draw_line(cx, top, cx + span, top + 3, mask, &style, opa);
+            break;
+        case 4:
+            style.line.width = 1;
+            span = letter_w >= 12 ? 5 : 4;
+            ptbr_draw_line(cx - span, top + 2, cx - span / 2, top, mask, &style, opa);
+            ptbr_draw_line(cx - span / 2, top, cx + span / 2, top + 2, mask, &style, opa);
+            ptbr_draw_line(cx + span / 2, top + 2, cx + span, top, mask, &style, opa);
+            break;
+        case 5:
+            ptbr_draw_line(cx - span / 2, top + 1, cx - span / 2, top + 2, mask, &style, opa);
+            ptbr_draw_line(cx + span / 2, top + 1, cx + span / 2, top + 2, mask, &style, opa);
+            break;
+        case 6:
+            ptbr_draw_line(cx - 1, pos->y + letter_h - 3, cx + 1, pos->y + letter_h - 1, mask, &style, opa);
+            ptbr_draw_line(cx + 1, pos->y + letter_h - 1, cx - 1, pos->y + letter_h + 1, mask, &style, opa);
+            break;
+    }
 }

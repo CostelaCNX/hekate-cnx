@@ -27,7 +27,7 @@ TRACK_CFLAGS = $(BUILDTDIR)/.cflags
 TRACK_LDFLAGS = $(BUILDTDIR)/.ldflags
 
 # Main and graphics.
-OBJS =  start exception_handlers main heap gfx logos tui fe_info fe_tools
+OBJS =  start exception_handlers main heap gfx logos tui fe_info fe_tools strings_ptbr
 
 # Hardware.
 OBJS += bpmp ccplex clock di i2c irq timer \

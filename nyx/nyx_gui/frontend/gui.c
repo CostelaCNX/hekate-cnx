@@ -222,7 +222,7 @@ static void _save_fb_to_bmp()
 	// Create notification box.
 	lv_obj_t * mbox = lv_mbox_create(lv_layer_top(), NULL);
 	lv_mbox_set_recolor_text(mbox, true);
-	lv_mbox_set_text(mbox, SYMBOL_CAMERA"  #FFDD00 Saving screenshot...#");
+	lv_mbox_set_text(mbox, SYMBOL_CAMERA"  #FFDD00 Salvando captura...#");
 	lv_obj_set_width(mbox, LV_DPI * 4);
 	lv_obj_set_top(mbox, true);
 	lv_obj_align(mbox, NULL, LV_ALIGN_IN_TOP_LEFT, 0, 0);
@@ -298,9 +298,9 @@ static void _save_fb_to_bmp()
 	free(fb);
 
 	if (!res)
-		lv_mbox_set_text(mbox, SYMBOL_CAMERA"  #96FF00 Screenshot saved!#");
+		lv_mbox_set_text(mbox, SYMBOL_CAMERA"  #96FF00 Captura salva!#");
 	else
-		lv_mbox_set_text(mbox, SYMBOL_WARNING"  #FFDD00 Screenshot failed!#");
+		lv_mbox_set_text(mbox, SYMBOL_WARNING"  #FFDD00 Falha na captura!#");
 	manual_system_maintenance(true);
 	lv_mbox_start_auto_close(mbox, 4000);
 
@@ -468,7 +468,7 @@ handle_console:
 				console_enabled = true;
 				gfx_con_getpos(&gfx_con.savedx, &gfx_con.savedy, &gfx_con.savedcol);
 				gfx_con_setpos(964, 630, GFX_COL_AUTO);
-				gfx_printf("Press -/+ to close");
+				gfx_printf("Pressione -/+ para fechar");
 				gfx_con_setpos(gfx_con.savedx, gfx_con.savedy, gfx_con.savedcol);
 			}
 			else
@@ -742,6 +742,11 @@ lv_res_t nyx_generic_onoff_toggle(lv_obj_t *btn)
 	lv_obj_t *label_btn = lv_obj_get_child(btn, NULL);
 	lv_obj_t *label_btn2 = lv_obj_get_child(btn, label_btn);
 
+	// Build LIG color string from theme accent (COLOR_HOS_TURQUOISE).
+	lv_color_t ac = lv_theme_get_current()->btn.tgl_rel->text.color;
+	char lig_clr[8];
+	s_printf(lig_clr, "%02X%02X%02X", (u32)ac.red, (u32)ac.green, (u32)ac.blue);
+
 	char label_text[64];
 	if (!label_btn2)
 	{
@@ -750,22 +755,22 @@ lv_res_t nyx_generic_onoff_toggle(lv_obj_t *btn)
 
 		if (!(lv_btn_get_state(btn) & LV_BTN_STATE_TGL_REL))
 		{
-			strcat(label_text, "#D0D0D0    OFF#");
+			strcat(label_text, "#D0D0D0   DESL#");
 			lv_label_set_text(label_btn, label_text);
 		}
 		else
 		{
-			s_printf(label_text, "%s%s%s", label_text, text_color, "    ON #");
+			s_printf(label_text, "%s#%s   LIG #", label_text, lig_clr);
 			lv_label_set_text(label_btn, label_text);
 		}
 	}
 	else
 	{
 		if (!(lv_btn_get_state(btn) & LV_BTN_STATE_TGL_REL))
-			lv_label_set_text(label_btn, "#D0D0D0 OFF#");
+			lv_label_set_text(label_btn, "#D0D0D0 DESL#");
 		else
 		{
-			s_printf(label_text, "%s%s", text_color, " ON #");
+			s_printf(label_text, "#%s LIG #", lig_clr);
 			lv_label_set_text(label_btn, label_text);
 		}
 	}
@@ -802,11 +807,11 @@ bool nyx_emmc_check_battery_enough()
 		lv_obj_t * mbox = lv_mbox_create(dark_bg, NULL);
 		lv_mbox_set_recolor_text(mbox, true);
 
-		lv_mbox_set_text(mbox,
-			"#FF8000 Battery Check#\n\n"
-			"#FFDD00 Battery is not enough to carry on#\n"
-			"#FFDD00 with selected operation!#\n\n"
-			"Charge to at least #C7EA46 3650 mV#, and try again!");
+	lv_mbox_set_text(mbox,
+		"#FF8000 Verificação da bateria#\n\n"
+		"#FFDD00 A bateria não é suficiente#\n"
+		"#FFDD00 para a operação selecionada!#\n\n"
+		"Carregue até #C7EA46 3650 mV# e tente novamente!");
 
 		lv_mbox_add_btns(mbox, mbox_btn_map, nyx_mbox_action);
 		lv_obj_set_width(mbox, LV_HOR_RES / 9 * 5);
@@ -830,10 +835,10 @@ static void _nyx_sd_card_issues_warning(void *param)
 	lv_mbox_set_recolor_text(mbox, true);
 
 	lv_mbox_set_text(mbox,
-		"#FF8000 SD Card Issues Warning#\n\n"
-		"#FFDD00 The SD Card is initialized in 1-bit mode!#\n"
-		"#FFDD00 This might mean detached or broken connector!#\n\n"
-		"You might want to check\n#C7EA46 Console Info# -> #C7EA46 microSD#");
+		"#FF8000 Aviso de problema no cartão SD#\n\n"
+		"#FFDD00 O cartão SD foi inicializado em modo 1-bit!#\n"
+		"#FFDD00 Isso pode indicar conector solto ou danificado!#\n\n"
+		"Verifique em\n#C7EA46 Info do Console# -> #C7EA46 microSD#");
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, nyx_mbox_action);
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 5);
@@ -891,9 +896,9 @@ lv_obj_t *nyx_create_standard_window(const char *win_title, lv_action_t close_ac
 	lv_obj_set_size(win, LV_HOR_RES, LV_VER_RES);
 
 	if (!close_action)
-		close_btn = lv_win_add_btn(win, NULL, SYMBOL_CLOSE" Close", nyx_win_close_action);
+		close_btn = lv_win_add_btn(win, NULL, SYMBOL_CLOSE" Fechar", nyx_win_close_action);
 	else
-		close_btn = lv_win_add_btn(win, NULL, SYMBOL_CLOSE" Close", close_action);
+		close_btn = lv_win_add_btn(win, NULL, SYMBOL_CLOSE" Fechar", close_action);
 
 	return win;
 }
@@ -997,13 +1002,13 @@ static void _check_sd_card_removed(void *params)
 		lv_obj_set_style(dark_bg, &mbox_darken);
 		lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-		static const char * mbox_btn_map[] = { "\221Reboot (RCM)", "\221Power Off", "\221Do not reload", "" };
-		static const char * mbox_btn_map_rcm_patched[] = { "\221Reboot", "\221Power Off", "\221Do not reload", "" };
+		static const char * mbox_btn_map[] = { "\221Reiniciar (RCM)", "\221Desligar", "\221Não recarregar", "" };
+		static const char * mbox_btn_map_rcm_patched[] = { "\221Reiniciar", "\221Desligar", "\221Não recarregar", "" };
 		lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 		lv_mbox_set_recolor_text(mbox, true);
 		lv_obj_set_width(mbox, LV_HOR_RES * 6 / 9);
 
-		lv_mbox_set_text(mbox, "\n#FF8000 SD card was removed!#\n\n#96FF00 Nyx will reload after inserting it.#\n\nReminder that you can use UMS instead of removing it.\n");
+		lv_mbox_set_text(mbox, "\n#FF8000 O cartão SD foi removido!#\n\n#96FF00 Nyx será recarregado apos reinseri-lo.#\n\nLembre-se: você pode usar UMS em vez de remover o cartão.\n");
 		lv_mbox_add_btns(mbox, h_cfg.rcm_patched ? mbox_btn_map_rcm_patched : mbox_btn_map, _removed_sd_action);
 
 		lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
@@ -1034,10 +1039,10 @@ static void _nyx_emmc_issues_warning(void *params)
 		lv_mbox_set_recolor_text(mbox, true);
 
 		lv_mbox_set_text(mbox,
-			"#FF8000 eMMC Issues Warning#\n\n"
-			"#FFDD00 Your eMMC is initialized in a slower mode!#\n"
-			"#FFDD00 This might mean hardware issues!#\n\n"
-			"You might want to check\n#C7EA46 Console Info# -> #C7EA46 eMMC#");
+			"#FF8000 Aviso de problema na eMMC#\n\n"
+			"#FFDD00 Sua eMMC foi inicializada em modo mais lento!#\n"
+			"#FFDD00 Isso pode indicar problema de hardware!#\n\n"
+			"Verifique em\n#C7EA46 Info do Console# -> #C7EA46 eMMC#");
 
 		lv_mbox_add_btns(mbox, mbox_btn_map, nyx_mbox_action);
 		lv_obj_set_width(mbox, LV_HOR_RES / 9 * 5);
@@ -1060,18 +1065,18 @@ static lv_res_t _create_mbox_reboot_ofw()
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char * mbox_btn_map[] = { "\221OK", "\221Cancel", "" };
+	static const char * mbox_btn_map[] = { "\221OK", "\221Cancelar", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES * 2 / 3);
 
 	lv_mbox_set_text(mbox,
-		"#FF8000 Warning#\n\n"
-		"#FFDD00 Your real DRAM ID does not match your RAM!#\n"
-		"#FFDD00 Density and rank differ!#\n\n"
-		"#FFDD00 Choosing to boot that way will cause #\n"
-		"#FFDD00 performance degradation or even crashes.#\n\n"
-		"Do you really want to boot via OFW method?#");
+		"#FF8000 Aviso#\n\n"
+		"#FFDD00 O ID real da DRAM não combina com sua RAM!#\n"
+		"#FFDD00 Densidade e rank sao diferentes!#\n\n"
+		"#FFDD00 Inicializar assim pode causar perda #\n"
+		"#FFDD00 de desempenho ou ate travamentos.#\n\n"
+		"Deseja mesmo iniciar pelo metodo OFW?#");
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, _reboot_ofw_action);
 
@@ -1126,13 +1131,13 @@ static lv_res_t _create_mbox_reload(lv_obj_t *btn)
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char * mbox_btn_map[] = { "\221Reload", "\221Cancel", "" };
+	static const char * mbox_btn_map[] = { "\221Recarregar", "\221Cancelar", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES * 4 / 10);
 
-	lv_mbox_set_text(mbox, "#FF8000 Do you really want#\n#FF8000 to reload hekate & Nyx?#\n\n"
-		"This also checks\n#96FF00 bootloader/update.bin#\nfor hekate updates");
+	lv_mbox_set_text(mbox, "#FF8000 Deseja realmente#\n#FF8000 recarregar o hekate & Nyx?#\n\n"
+		"Isto também verifica\n#96FF00 bootloader/update.bin#\npor atualizações do hekate");
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, reload_action);
 
@@ -1148,14 +1153,14 @@ static lv_res_t _create_mbox_reboot(lv_obj_t *btn)
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char * mbox_btn_map[] = { "\221OFW", "\221RCM", "\221Cancel", "" };
-	static const char * mbox_btn_map_autorcm[] = { "\261OFW", "\221RCM", "\221Cancel", "" };
-	static const char * mbox_btn_map_patched[] = { "\221OFW", "\221Normal", "\221Cancel", "" };
+	static const char * mbox_btn_map[] = { "\221OFW", "\221RCM", "\221Cancelar", "" };
+	static const char * mbox_btn_map_autorcm[] = { "\261OFW", "\221RCM", "\221Cancelar", "" };
+	static const char * mbox_btn_map_patched[] = { "\221OFW", "\221Normal", "\221Cancelar", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES / 2);
 
-	lv_mbox_set_text(mbox, "#FF8000 Choose where to reboot:#");
+	lv_mbox_set_text(mbox, "#FF8000 Escolha onde reiniciar:#");
 
 	// No OFW support if fuses burnt to 7. Custom secmon is mandatory.
 	bool t210_8gb_dramid = !h_cfg.t210b01 && fuse_read_dramid(true) == LPDDR4_ICOSA_8GB_SAMSUNG_K4FBE3D4HM_MGXX;
@@ -1179,12 +1184,12 @@ static lv_res_t _create_mbox_poweroff(lv_obj_t *btn)
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char * mbox_btn_map[] = { "\221Power Off", "\221Cancel", "" };
+	static const char * mbox_btn_map[] = { "\221Desligar", "\221Cancelar", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES * 4 / 10);
 
-	lv_mbox_set_text(mbox, "#FF8000 Do you really want#\n#FF8000 to power off?#");
+	lv_mbox_set_text(mbox, "#FF8000 Deseja realmente#\n#FF8000 desligar?#");
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, _poweroff_action);
 
@@ -1225,10 +1230,10 @@ void nyx_create_onoff_button(lv_theme_t *th, lv_obj_t *parent, lv_obj_t *btn, co
 	lv_label_set_recolor(label_btnsw, true);
 	lv_btn_set_layout(btn, LV_LAYOUT_OFF);
 
-	lv_btn_set_style(btn, LV_BTN_STYLE_REL, &btn_onoff_rel_hos_style);
-	lv_btn_set_style(btn, LV_BTN_STYLE_PR, &btn_onoff_pr_hos_style);
+	lv_btn_set_style(btn, LV_BTN_STYLE_REL,     &btn_onoff_rel_hos_style);
+	lv_btn_set_style(btn, LV_BTN_STYLE_PR,      &btn_onoff_pr_hos_style);
 	lv_btn_set_style(btn, LV_BTN_STYLE_TGL_REL, &btn_onoff_rel_hos_style);
-	lv_btn_set_style(btn, LV_BTN_STYLE_TGL_PR, &btn_onoff_pr_hos_style);
+	lv_btn_set_style(btn, LV_BTN_STYLE_TGL_PR,  &btn_onoff_pr_hos_style);
 
 	lv_btn_set_fit(btn, false, true);
 	lv_obj_set_width(btn, lv_obj_get_width(parent));
@@ -1236,7 +1241,7 @@ void nyx_create_onoff_button(lv_theme_t *th, lv_obj_t *parent, lv_obj_t *btn, co
 
 	lv_label_set_text(label_btn, btn_name);
 
-	lv_label_set_text(label_btnsw, "#D0D0D0 OFF#");
+	lv_label_set_text(label_btnsw, "#D0D0D0 DESL#");
 	lv_obj_align(label_btn, btn, LV_ALIGN_IN_LEFT_MID, LV_DPI / 4, 0);
 	lv_obj_align(label_btnsw, btn, LV_ALIGN_IN_RIGHT_MID, -LV_DPI / 4, -LV_DPI / 10);
 
@@ -1297,13 +1302,13 @@ static void _create_tab_about(lv_theme_t * th, lv_obj_t * parent)
 		"\n"
 		"#C7EA46 Nyx#    (c) 2019-2026, #C7EA46 CTCaer#\n"
 		"\n"
-		"Thanks to: #00CCFF derrek, nedwill, plutoo, #\n"
+		"Agradecimentos: #00CCFF derrek, nedwill, plutoo, #\n"
 		"           #00CCFF shuffle2, smea, thexyz, yellows8 #\n"
 		"\n"
-		"Greetings to: fincs, hexkyz, SciresM,\n"
+		"Saudações: fincs, hexkyz, SciresM,\n"
 		"              Shiny Quagsire, WinterMute\n"
 		"\n"
-		"Open source and free packages used:                    \n" // Label width alignment padding.
+		"Pacotes livres/open source usados:                     \n" // Label width alignment padding.
 		" - Littlev Graphics Library,\n"
 		"   Copyright (c) 2016-2018, Gabor Kiss-Vamosi\n\n"
 		" - FatFs R0.13c,\n"
@@ -1434,12 +1439,12 @@ static lv_res_t _create_mbox_payloads(lv_obj_t *btn)
 	lv_obj_set_style(dark_bg, &mbox_darken);
 	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-	static const char * mbox_btn_map[] = { "\251", "\222Cancel", "\251", "" };
+	static const char * mbox_btn_map[] = { "\251", "\222Cancelar", "\251", "" };
 	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
 	lv_mbox_set_recolor_text(mbox, true);
 	lv_obj_set_width(mbox, LV_HOR_RES * 5 / 9);
 
-	lv_mbox_set_text(mbox, "Select a payload to launch:");
+	lv_mbox_set_text(mbox, "Selecione um payload para iniciar:");
 
 	// Create a list with all found payloads.
 	//! TODO: SHould that be tabs with buttons? + Icon support?
@@ -1450,7 +1455,7 @@ static lv_res_t _create_mbox_payloads(lv_obj_t *btn)
 
 	if (sd_mount())
 	{
-		lv_mbox_set_text(mbox, "#FFDD00 Failed to init SD!#");
+		lv_mbox_set_text(mbox, "#FFDD00 Falha ao inicializar o SD!#");
 
 		goto out_end;
 	}
@@ -1569,7 +1574,7 @@ static lv_obj_t *create_window_launch(const char *win_title)
 
 	lv_win_set_style(win, LV_WIN_STYLE_BG, &win_bg_style);
 
-	close_btn = lv_win_add_btn(win, NULL, SYMBOL_CLOSE" Close", _win_launch_close_action);
+	close_btn = lv_win_add_btn(win, NULL, SYMBOL_CLOSE" Fechar", _win_launch_close_action);
 
 	return win;
 }
@@ -1590,17 +1595,13 @@ static lv_res_t logs_onoff_toggle(lv_obj_t *btn)
 	lv_obj_t *label_btn = lv_obj_get_child(btn, NULL);
 
 	char label_text[64];
-	strcpy(label_text, lv_label_get_text(label_btn));
-	label_text[strlen(label_text) - 12] = 0;
-
 	if (!launch_logs_enable)
-	{
-		strcat(label_text, "#D0D0D0 OFF#");
-		lv_label_set_text(label_btn, label_text);
-	}
+		lv_label_set_text(label_btn, SYMBOL_LIST" Logs #D0D0D0 DESL#");
 	else
 	{
-		s_printf(label_text, "%s%s%s", label_text, text_color, " ON #");
+		lv_color_t ac = lv_theme_get_current()->btn.tgl_rel->text.color;
+		s_printf(label_text, SYMBOL_LIST" Logs #%02X%02X%02X LIG #",
+			(u32)ac.red, (u32)ac.green, (u32)ac.blue);
 		lv_label_set_text(label_btn, label_text);
 	}
 
@@ -1659,7 +1660,8 @@ static lv_res_t _create_window_home_launch(lv_obj_t *btn)
 	static lv_style_t btn_home_transp_rel;
 	lv_style_copy(&btn_home_transp_rel, lv_theme_get_current()->btn.rel);
 	btn_home_transp_rel.body.opa = LV_OPA_0;
-	btn_home_transp_rel.body.border.width = 4;
+	btn_home_transp_rel.body.border.width = 0;
+	btn_home_transp_rel.body.border.opa = LV_OPA_0;
 
 	static lv_style_t btn_home_transp_pr;
 	lv_style_copy(&btn_home_transp_pr, lv_theme_get_current()->btn.pr);
@@ -1677,7 +1679,7 @@ static lv_res_t _create_window_home_launch(lv_obj_t *btn)
 	bool combined_cfg = false;
 	if (btn)
 	{
-		if (strcmp(lv_label_get_text(lv_obj_get_child(btn, NULL)) + 8,"Launch#"))
+		if (!strstr(lv_label_get_text(lv_obj_get_child(btn, NULL)), "Iniciar"))
 			more_cfg = true;
 	}
 	else
@@ -1694,13 +1696,13 @@ static lv_res_t _create_window_home_launch(lv_obj_t *btn)
 	}
 
 	if (!btn)
-		win = create_window_launch(SYMBOL_GPS" hekate - Launch");
+		win = create_window_launch(SYMBOL_GPS" hekate - Iniciar");
 	else if (!more_cfg)
-		win = create_window_launch(SYMBOL_GPS" Launch");
+		win = create_window_launch(SYMBOL_GPS" Iniciar");
 	else
-		win = create_window_launch(SYMBOL_GPS" More Configurations");
+		win = create_window_launch(SYMBOL_GPS" Mais Configurações");
 
-	lv_win_add_btn(win, NULL, SYMBOL_LIST" Logs #D0D0D0 OFF#", logs_onoff_toggle);
+	lv_win_add_btn(win, NULL, SYMBOL_LIST" Logs #D0D0D0 DESL#", logs_onoff_toggle);
 	launch_logs_enable = false;
 
 	lv_cont_set_fit(lv_page_get_scrl(lv_win_get_content(win)), false, false);
@@ -1752,7 +1754,7 @@ static lv_res_t _create_window_home_launch(lv_obj_t *btn)
 	// Create colorized icon style based on its parent style.
 	static lv_style_t img_style;
 	lv_style_copy(&img_style, &lv_style_plain);
-	img_style.image.color = COLOR_HOS_TURQUOISE_EX(n_cfg.theme_color);
+	img_style.image.color = LV_COLOR_WHITE;
 	img_style.image.intense = LV_OPA_COVER;
 
 	// Parse ini boot entries and set buttons/icons.
@@ -1981,16 +1983,16 @@ failed_sd_mount:
 		if (!more_cfg)
 		{
 			lv_label_set_static_text(label_error,
-				"#FFDD00 No main boot entries found...#\n"
-				"Check that #96FF00 bootloader/hekate_ipl.ini# has boot entries\n"
-				"or use #C7EA46 More configs# button for more boot entries.");
+				"#FFDD00 Nenhuma entrada principal encontrada...#\n"
+				"Verifique se #96FF00 bootloader/hekate_ipl.ini# tem entradas\n"
+				"ou use #C7EA46 Mais configs# para outras entradas.");
 		}
 		else
 		{
 			lv_label_set_static_text(label_error,
-				"#FFDD00 No .ini or boot entries found...#\n"
-				"Check that a .ini file exists in #96FF00 bootloader/ini/#\n"
-				"and that it contains at least one entry.");
+				"#FFDD00 Nenhum .ini ou entrada encontrado...#\n"
+				"Verifique se há um .ini em #96FF00 bootloader/ini/#\n"
+				"e se ele contém pelo menos uma entrada.");
 		}
 
 		lv_obj_set_pos(label_error, 19, 0);
@@ -2017,7 +2019,7 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	// Set tagline label.
 	lv_obj_t *label_tagline = lv_label_create(parent, NULL);
 	lv_obj_set_style(label_tagline, &hint_small_style_white);
-	lv_label_set_static_text(label_tagline, "THE ALL IN ONE BOOTLOADER FOR ALL YOUR NEEDS");
+	lv_label_set_static_text(label_tagline, "BOOTLOADER TUDO EM UM PARA O SEU SWITCH");
 	lv_obj_set_pos(label_tagline, 50, 82);
 
 	static lv_style_t icons;
@@ -2032,32 +2034,26 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 		lv_btn_set_style(btn_launch, LV_BTN_STYLE_PR, &btn_transp_pr);
 	}
 	lv_obj_t *label_btn = lv_label_create(btn_launch, NULL);
-	lv_label_set_recolor(label_btn, true);
 	lv_obj_set_style(label_btn, &icons);
-	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_DOT"#");
-	lv_label_set_text(label_btn, btn_colored_text);
+	lv_label_set_static_text(label_btn, " "SYMBOL_DOT);
 	lv_btn_set_action(btn_launch, LV_BTN_ACTION_CLICK, _create_window_home_launch);
 	lv_obj_set_size(btn_launch, 256, 256);
 	lv_obj_set_pos(btn_launch, 50, 160);
 	lv_btn_set_layout(btn_launch, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	lv_obj_t *label_btn2 = lv_label_create(btn_launch, NULL);
-	lv_label_set_recolor(label_btn2, true);
-	s_printf(btn_colored_text, "%s%s", text_color, " Launch#");
-	lv_label_set_text(label_btn2, btn_colored_text);
+	lv_label_set_static_text(label_btn2, " Iniciar");
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
 	// More Configs button.
 	lv_obj_t *btn_more_cfg = lv_btn_create(parent, btn_launch);
 	label_btn = lv_label_create(btn_more_cfg, label_btn);
-	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_CLOCK"#");
-	lv_label_set_text(label_btn, btn_colored_text);
+	lv_label_set_static_text(label_btn, " "SYMBOL_CLOCK);
 	lv_btn_set_action(btn_more_cfg, LV_BTN_ACTION_CLICK, _create_window_home_launch);
 	lv_btn_set_layout(btn_more_cfg, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	label_btn2 = lv_label_create(btn_more_cfg, label_btn2);
-	s_printf(btn_colored_text, "%s%s", text_color, " More Configs#");
-	lv_label_set_text(label_btn2, btn_colored_text);
+	lv_label_set_static_text(label_btn2, " Mais Configs");
 	lv_obj_set_pos(btn_more_cfg, 341, 160);
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
@@ -2076,7 +2072,7 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	// }
 
 	lv_obj_t *btn_nyx_options = lv_btn_create(parent, NULL);
-	_create_text_button(th, NULL, btn_nyx_options, SYMBOL_SETTINGS" Nyx Settings", NULL);
+	_create_text_button(th, NULL, btn_nyx_options, SYMBOL_SETTINGS" Configurações", NULL);
 	//lv_obj_set_width(btn_nyx_options, 256);
 	lv_btn_set_action(btn_nyx_options, LV_BTN_ACTION_CLICK, create_win_nyx_options);
 	lv_obj_align(btn_nyx_options, NULL, LV_ALIGN_IN_BOTTOM_LEFT, LV_DPI / 4, -LV_DPI / 12);
@@ -2084,14 +2080,12 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	// Payloads button.
 	lv_obj_t *btn_payloads = lv_btn_create(parent, btn_launch);
 	label_btn = lv_label_create(btn_payloads, label_btn);
-	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_OK"#");
-	lv_label_set_text(label_btn, btn_colored_text);
+	lv_label_set_static_text(label_btn, " "SYMBOL_OK);
 	lv_btn_set_action(btn_payloads, LV_BTN_ACTION_CLICK, _create_mbox_payloads);
 	lv_btn_set_layout(btn_payloads, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	label_btn2 = lv_label_create(btn_payloads, label_btn2);
-	s_printf(btn_colored_text, "%s%s", text_color, " Payloads#");
-	lv_label_set_text(label_btn2, btn_colored_text);
+	lv_label_set_static_text(label_btn2, " Payloads");
 	lv_obj_set_pos(btn_payloads, 632, 160);
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
@@ -2104,15 +2098,13 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	// emuMMC manage button.
 	lv_obj_t *btn_emummc = lv_btn_create(parent, btn_launch);
 	label_btn = lv_label_create(btn_emummc, label_btn);
-	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_LIST"#");
-	lv_label_set_text(label_btn, btn_colored_text);
+	lv_label_set_static_text(label_btn, " "SYMBOL_LIST);
 	lv_btn_set_action(btn_emummc, LV_BTN_ACTION_CLICK, create_win_emummc_tools);
 	lv_btn_set_layout(btn_emummc, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	lv_obj_set_pos(btn_emummc, 959, 160);
 	label_btn2 = lv_label_create(btn_emummc, label_btn2);
-	s_printf(btn_colored_text, "%s%s", text_color, " emuMMC#");
-	lv_label_set_text(label_btn2, btn_colored_text);
+	lv_label_set_static_text(label_btn2, " emuMMC");
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
 	// Create bottom right power buttons.
@@ -2120,13 +2112,13 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	lv_obj_t *btn_power_off = lv_btn_create(parent, NULL);
 	lv_obj_t *btn_reload = lv_btn_create(parent, NULL);
 
-	_create_text_button(th, NULL, btn_power_off, SYMBOL_POWER" Power Off", _create_mbox_poweroff);
+	_create_text_button(th, NULL, btn_power_off, SYMBOL_POWER" Desligar", _create_mbox_poweroff);
 	lv_obj_align(btn_power_off, NULL, LV_ALIGN_IN_BOTTOM_RIGHT, -LV_DPI / 4, -LV_DPI / 12);
 
-	_create_text_button(th, NULL, btn_reboot, SYMBOL_REBOOT" Reboot", _create_mbox_reboot);
+	_create_text_button(th, NULL, btn_reboot, SYMBOL_REBOOT" Reiniciar", _create_mbox_reboot);
 	lv_obj_align(btn_reboot, btn_power_off, LV_ALIGN_OUT_LEFT_MID, 0, 0);
 
-	_create_text_button(th, NULL, btn_reload, SYMBOL_REFRESH" Reload", _create_mbox_reload);
+	_create_text_button(th, NULL, btn_reload, SYMBOL_REFRESH" Recarregar", _create_mbox_reload);
 	lv_obj_align(btn_reload, btn_reboot, LV_ALIGN_OUT_LEFT_MID, 0, 0);
 }
 
@@ -2142,9 +2134,9 @@ static lv_res_t _save_options_action(lv_obj_t *btn)
 		res = create_config_entry();
 
 	if (!res)
-		lv_mbox_set_text(mbox, "#FF8000 hekate Configuration#\n\n#96FF00 The configuration was saved to sd card!#");
+		lv_mbox_set_text(mbox, "#FF8000 Configuração do hekate#\n\n#96FF00 A configuração foi salva no cartão SD!#");
 	else
-		lv_mbox_set_text(mbox, "#FF8000 hekate Configuration#\n\n#FFDD00 Failed to save the configuration#\n#FFDD00 to sd card!#");
+		lv_mbox_set_text(mbox, "#FF8000 Configuração do hekate#\n\n#FFDD00 Falha ao salvar a configuração#\n#FFDD00 no cartão SD!#");
 	lv_mbox_add_btns(mbox, mbox_btn_map, NULL);
 	lv_obj_set_top(mbox, true);
 
@@ -2208,7 +2200,7 @@ static void _create_status_bar(lv_theme_t * th)
 	//! TODO: Utilize it for more.
 	lv_obj_t *btn_mid = lv_btn_create(status_bar_bg, NULL);
 	lv_obj_t *lbl_mid = lv_label_create(btn_mid, NULL);
-	lv_label_set_static_text(lbl_mid, "Save Options");
+	lv_label_set_static_text(lbl_mid, "Salvar opções");
 	lv_obj_set_size(btn_mid, LV_DPI * 17 / 8, LV_DPI / 2);
 	lv_obj_align(btn_mid, NULL, LV_ALIGN_CENTER, 0, 0);
 	status_bar.mid = btn_mid;
@@ -2238,14 +2230,14 @@ void nyx_check_ini_changes()
 		lv_obj_set_style(dark_bg, &mbox_darken);
 		lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
 
-		static const char * mbox_btn_map[] = { "\222Save", "\222Cancel", "" };
+		static const char * mbox_btn_map[] = { "\222Salvar", "\222Cancelar", "" };
 		lv_obj_t * mbox = lv_mbox_create(dark_bg, NULL);
 		lv_mbox_set_recolor_text(mbox, true);
 
 		lv_mbox_set_text(mbox,
-			"#FF8000 Main configuration#\n\n"
-			"You changed the configuration!\n\n"
-			"Do you want to save it?");
+			"#FF8000 Configuração principal#\n\n"
+			"Você alterou a configuração!\n\n"
+			"Deseja salvar?");
 
 		lv_mbox_add_btns(mbox, mbox_btn_map, _create_mbox_save_changes_action);
 		lv_obj_set_width(mbox, LV_HOR_RES / 9 * 5);
@@ -2357,17 +2349,6 @@ static void _nyx_set_default_styles(lv_theme_t * th)
 	s_printf(text_color, "#%06X", (u32)(tmp_color.full & 0xFFFFFF));
 }
 
-lv_task_t *task_bpmp_clock;
-void first_time_bpmp_clock(void *param)
-{
-	// Remove task.
-	lv_task_del(task_bpmp_clock);
-
-	// Max clock seems fine. Save it.
-	n_cfg.bpmp_clock = 1;
-	create_nyx_config_entry(false);
-}
-
 static void _nyx_main_menu(lv_theme_t * th)
 {
 	static lv_style_t no_padding;
@@ -2415,17 +2396,17 @@ static void _nyx_main_menu(lv_theme_t * th)
 			 (nyx_str->info_ex.rsvd_flags & RSVD_FLAG_DRAM_8GB) ? '*' : 0);
 	lv_obj_t *tab_about = lv_tabview_add_tab(tv, version);
 
-	lv_obj_t *tab_home = lv_tabview_add_tab(tv, SYMBOL_HOME" Home");
+	lv_obj_t *tab_home = lv_tabview_add_tab(tv, SYMBOL_HOME" Início");
 
-	lv_obj_t *tab_tools = lv_tabview_add_tab(tv, SYMBOL_TOOLS" Tools");
+	lv_obj_t *tab_tools = lv_tabview_add_tab(tv, SYMBOL_TOOLS" Ferramentas");
 	lv_page_set_style(tab_tools, LV_PAGE_STYLE_BG, &no_padding);
 	lv_page_set_style(tab_tools, LV_PAGE_STYLE_SCRL, &no_padding);
 
-	lv_obj_t *tab_info = lv_tabview_add_tab(tv, SYMBOL_INFO" Console Info");
+	lv_obj_t *tab_info = lv_tabview_add_tab(tv, SYMBOL_INFO" Info do Console");
 	lv_page_set_style(tab_info, LV_PAGE_STYLE_BG, &no_padding);
 	lv_page_set_style(tab_info, LV_PAGE_STYLE_SCRL, &no_padding);
 
-	lv_obj_t *tab_options = lv_tabview_add_tab(tv, SYMBOL_SETTINGS" Options");
+	lv_obj_t *tab_options = lv_tabview_add_tab(tv, SYMBOL_SETTINGS" Opções");
 
 	_create_tab_about(th, tab_about);
 	_create_tab_home(th, tab_home);
@@ -2456,8 +2437,8 @@ static void _nyx_main_menu(lv_theme_t * th)
 	static lv_style_t line_style;
 	lv_style_copy(&line_style, &lv_style_plain_color);
 
-	line_style.body.main_color = LV_COLOR_HEX(0xDDDDDD); // 0x505050
-	line_style.body.grad_color = line_style.body.main_color;
+	line_style.body.main_color = COLOR_HOS_TURQUOISE_EX(n_cfg.theme_color);
+	line_style.body.grad_color = COLOR_HOS_TURQUOISE_EX(n_cfg.theme_color);
 	line_style.body.shadow.width = 0;
 
 	lv_cont_set_style(line, &line_style);
@@ -2488,9 +2469,6 @@ static void _nyx_main_menu(lv_theme_t * th)
 		lv_task_t *task_run_clock = lv_task_create(first_time_clock_edit, LV_TASK_ONESHOT, LV_TASK_PRIO_MID, NULL);
 		lv_task_once(task_run_clock);
 	}
-
-	if (!n_cfg.bpmp_clock)
-		task_bpmp_clock = lv_task_create(first_time_bpmp_clock, 10000, LV_TASK_PRIO_LOWEST, NULL);
 }
 
 void nyx_load_and_run()

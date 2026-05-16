@@ -21,6 +21,7 @@
 /**********************
  *  STATIC PROTOTYPES
  **********************/
+static uint32_t lv_font_get_ptbr_base(uint32_t letter);
 
 /**********************
  *  STATIC VARIABLES
@@ -89,6 +90,7 @@ void lv_font_remove(lv_font_t * child, lv_font_t * parent)
  */
 bool lv_font_is_monospace(const lv_font_t * font_p, uint32_t letter)
 {
+    letter = lv_font_get_ptbr_base(letter);
     const lv_font_t * font_i = font_p;
     int16_t w;
     while(font_i != NULL) {
@@ -113,6 +115,7 @@ bool lv_font_is_monospace(const lv_font_t * font_p, uint32_t letter)
  */
 const uint8_t * lv_font_get_bitmap(const lv_font_t * font_p, uint32_t letter)
 {
+    letter = lv_font_get_ptbr_base(letter);
     const lv_font_t * font_i = font_p;
     while(font_i != NULL) {
         const uint8_t * bitmap = font_i->get_bitmap(font_i, letter);
@@ -132,6 +135,7 @@ const uint8_t * lv_font_get_bitmap(const lv_font_t * font_p, uint32_t letter)
  */
 uint8_t lv_font_get_width(const lv_font_t * font_p, uint32_t letter)
 {
+    letter = lv_font_get_ptbr_base(letter);
     const lv_font_t * font_i = font_p;
     int16_t w;
     while(font_i != NULL) {
@@ -158,6 +162,7 @@ uint8_t lv_font_get_width(const lv_font_t * font_p, uint32_t letter)
  */
 uint8_t lv_font_get_real_width(const lv_font_t * font_p, uint32_t letter)
 {
+    letter = lv_font_get_ptbr_base(letter);
     const lv_font_t * font_i = font_p;
     int16_t w;
     while(font_i != NULL) {
@@ -178,6 +183,7 @@ uint8_t lv_font_get_real_width(const lv_font_t * font_p, uint32_t letter)
  */
 uint8_t lv_font_get_bpp(const lv_font_t * font, uint32_t letter)
 {
+    letter = lv_font_get_ptbr_base(letter);
     const lv_font_t * font_i = font;
     while(font_i != NULL) {
         if(letter >= font_i->unicode_first && letter <= font_i->unicode_last) {
@@ -198,6 +204,7 @@ uint8_t lv_font_get_bpp(const lv_font_t * font, uint32_t letter)
  */
 const uint8_t * lv_font_get_bitmap_continuous(const lv_font_t * font, uint32_t unicode_letter)
 {
+    unicode_letter = lv_font_get_ptbr_base(unicode_letter);
     /*Check the range*/
     if(unicode_letter < font->unicode_first || unicode_letter > font->unicode_last) return NULL;
 
@@ -213,6 +220,7 @@ const uint8_t * lv_font_get_bitmap_continuous(const lv_font_t * font, uint32_t u
  */
 const uint8_t * lv_font_get_bitmap_sparse(const lv_font_t * font, uint32_t unicode_letter)
 {
+    unicode_letter = lv_font_get_ptbr_base(unicode_letter);
     /*Check the range*/
     if(unicode_letter < font->unicode_first || unicode_letter > font->unicode_last) return NULL;
 
@@ -234,6 +242,7 @@ const uint8_t * lv_font_get_bitmap_sparse(const lv_font_t * font, uint32_t unico
  */
 int16_t lv_font_get_width_continuous(const lv_font_t * font, uint32_t unicode_letter)
 {
+    unicode_letter = lv_font_get_ptbr_base(unicode_letter);
     /*Check the range*/
     if(unicode_letter < font->unicode_first || unicode_letter > font->unicode_last) {
         return -1;
@@ -251,6 +260,7 @@ int16_t lv_font_get_width_continuous(const lv_font_t * font, uint32_t unicode_le
  */
 int16_t lv_font_get_width_sparse(const lv_font_t * font, uint32_t unicode_letter)
 {
+    unicode_letter = lv_font_get_ptbr_base(unicode_letter);
     /*Check the range*/
     if(unicode_letter < font->unicode_first || unicode_letter > font->unicode_last) return -1;
 
@@ -267,3 +277,35 @@ int16_t lv_font_get_width_sparse(const lv_font_t * font, uint32_t unicode_letter
 /**********************
  *   STATIC FUNCTIONS
  **********************/
+
+static uint32_t lv_font_get_ptbr_base(uint32_t letter)
+{
+    switch(letter) {
+        case 0x00C0: case 0x00C1: case 0x00C2: case 0x00C3:
+            return 'A';
+        case 0x00C7:
+            return 'C';
+        case 0x00C9: case 0x00CA:
+            return 'E';
+        case 0x00CD:
+            return 'I';
+        case 0x00D3: case 0x00D4: case 0x00D5:
+            return 'O';
+        case 0x00DA: case 0x00DC:
+            return 'U';
+        case 0x00E0: case 0x00E1: case 0x00E2: case 0x00E3:
+            return 'a';
+        case 0x00E7:
+            return 'c';
+        case 0x00E9: case 0x00EA:
+            return 'e';
+        case 0x00ED:
+            return 'i';
+        case 0x00F3: case 0x00F4: case 0x00F5:
+            return 'o';
+        case 0x00FA: case 0x00FC:
+            return 'u';
+        default:
+            return letter;
+    }
+}
