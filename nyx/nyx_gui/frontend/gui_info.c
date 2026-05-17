@@ -3003,12 +3003,6 @@ void create_tab_info(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create Bootrom button.
 	lv_obj_t *btn = lv_btn_create(h1, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn, LV_BTN_STYLE_REL, &btn_transp_rel);
-		lv_btn_set_style(btn, LV_BTN_STYLE_PR,  &btn_transp_pr);
-		lv_btn_set_style(btn, LV_BTN_STYLE_INA, &btn_transp_ina);
-	}
 	lv_obj_t *label_btn = lv_label_create(btn, NULL);
 	lv_btn_set_fit(btn, true, true);
 	lv_label_set_static_text(label_btn, SYMBOL_CHIP"  Bootrom");
@@ -3101,11 +3095,6 @@ void create_tab_info(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create eMMC button.
 	lv_obj_t *btn5 = lv_btn_create(h2, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn5, LV_BTN_STYLE_REL, &btn_transp_rel);
-		lv_btn_set_style(btn5, LV_BTN_STYLE_PR, &btn_transp_pr);
-	}
 	label_btn = lv_label_create(btn5, NULL);
 	lv_btn_set_fit(btn5, true, true);
 	lv_label_set_static_text(label_btn, SYMBOL_CHIP"  eMMC  ");
@@ -3133,11 +3122,6 @@ void create_tab_info(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create Battery button.
 	lv_obj_t *btn7 = lv_btn_create(h2, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn7, LV_BTN_STYLE_REL, &btn_transp_rel);
-		lv_btn_set_style(btn7, LV_BTN_STYLE_PR, &btn_transp_pr);
-	}
 	label_btn = lv_label_create(btn7, NULL);
 	lv_btn_set_fit(btn7, true, true);
 	lv_label_set_static_text(label_btn, SYMBOL_BATTERY_FULL"  Bateria");

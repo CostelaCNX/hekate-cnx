@@ -743,11 +743,6 @@ lv_res_t nyx_generic_onoff_toggle(lv_obj_t *btn)
 	lv_obj_t *label_btn = lv_obj_get_child(btn, NULL);
 	lv_obj_t *label_btn2 = lv_obj_get_child(btn, label_btn);
 
-	// Build LIG color string from theme accent (COLOR_HOS_TURQUOISE).
-	lv_color_t ac = lv_theme_get_current()->btn.tgl_rel->text.color;
-	char lig_clr[8];
-	s_printf(lig_clr, "%02X%02X%02X", (u32)ac.red, (u32)ac.green, (u32)ac.blue);
-
 	char label_text[64];
 	if (!label_btn2)
 	{
@@ -761,7 +756,7 @@ lv_res_t nyx_generic_onoff_toggle(lv_obj_t *btn)
 		}
 		else
 		{
-			s_printf(label_text, "%s#%s   LIG #", label_text, lig_clr);
+			s_printf(label_text, "%s%s%s", label_text, text_color, "   LIG #");
 			lv_label_set_text(label_btn, label_text);
 		}
 	}
@@ -771,7 +766,7 @@ lv_res_t nyx_generic_onoff_toggle(lv_obj_t *btn)
 			lv_label_set_text(label_btn, "#D0D0D0 DESL#");
 		else
 		{
-			s_printf(label_text, "#%s LIG #", lig_clr);
+			s_printf(label_text, "%s%s", text_color, " LIG #");
 			lv_label_set_text(label_btn, label_text);
 		}
 	}
@@ -1600,9 +1595,7 @@ static lv_res_t logs_onoff_toggle(lv_obj_t *btn)
 		lv_label_set_text(label_btn, SYMBOL_LIST" Logs #D0D0D0 DESL#");
 	else
 	{
-		lv_color_t ac = lv_theme_get_current()->btn.tgl_rel->text.color;
-		s_printf(label_text, SYMBOL_LIST" Logs #%02X%02X%02X LIG #",
-			(u32)ac.red, (u32)ac.green, (u32)ac.blue);
+		s_printf(label_text, SYMBOL_LIST" Logs %s LIG #", text_color);
 		lv_label_set_text(label_btn, label_text);
 	}
 
@@ -1703,7 +1696,8 @@ static lv_res_t _create_window_home_launch(lv_obj_t *btn)
 	else
 		win = create_window_launch(SYMBOL_GPS" Mais Configurações");
 
-	lv_win_add_btn(win, NULL, SYMBOL_LIST" Logs #D0D0D0 DESL#", logs_onoff_toggle);
+	lv_obj_t *btn_logs = lv_win_add_btn(win, NULL, SYMBOL_LIST" Logs #D0D0D0 DESL#", logs_onoff_toggle);
+	lv_label_set_recolor(lv_obj_get_child(btn_logs, NULL), true);
 	launch_logs_enable = false;
 
 	lv_cont_set_fit(lv_page_get_scrl(lv_win_get_content(win)), false, false);
@@ -1755,7 +1749,7 @@ static lv_res_t _create_window_home_launch(lv_obj_t *btn)
 	// Create colorized icon style based on its parent style.
 	static lv_style_t img_style;
 	lv_style_copy(&img_style, &lv_style_plain);
-	img_style.image.color = LV_COLOR_WHITE;
+	img_style.image.color = COLOR_HOS_TURQUOISE_EX(n_cfg.theme_color);
 	img_style.image.intense = LV_OPA_COVER;
 
 	// Parse ini boot entries and set buttons/icons.
@@ -2035,26 +2029,32 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 		lv_btn_set_style(btn_launch, LV_BTN_STYLE_PR, &btn_transp_pr);
 	}
 	lv_obj_t *label_btn = lv_label_create(btn_launch, NULL);
+	lv_label_set_recolor(label_btn, true);
 	lv_obj_set_style(label_btn, &icons);
-	lv_label_set_static_text(label_btn, " "SYMBOL_DOT);
+	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_DOT"#");
+	lv_label_set_text(label_btn, btn_colored_text);
 	lv_btn_set_action(btn_launch, LV_BTN_ACTION_CLICK, _create_window_home_launch);
 	lv_obj_set_size(btn_launch, 256, 256);
 	lv_obj_set_pos(btn_launch, 50, 160);
 	lv_btn_set_layout(btn_launch, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	lv_obj_t *label_btn2 = lv_label_create(btn_launch, NULL);
-	lv_label_set_static_text(label_btn2, " Iniciar");
+	lv_label_set_recolor(label_btn2, true);
+	s_printf(btn_colored_text, "%s%s", text_color, " Iniciar#");
+	lv_label_set_text(label_btn2, btn_colored_text);
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
 	// More Configs button.
 	lv_obj_t *btn_more_cfg = lv_btn_create(parent, btn_launch);
 	label_btn = lv_label_create(btn_more_cfg, label_btn);
-	lv_label_set_static_text(label_btn, " "SYMBOL_CLOCK);
+	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_CLOCK"#");
+	lv_label_set_text(label_btn, btn_colored_text);
 	lv_btn_set_action(btn_more_cfg, LV_BTN_ACTION_CLICK, _create_window_home_launch);
 	lv_btn_set_layout(btn_more_cfg, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	label_btn2 = lv_label_create(btn_more_cfg, label_btn2);
-	lv_label_set_static_text(label_btn2, " Mais Configs");
+	s_printf(btn_colored_text, "%s%s", text_color, " Mais Configs#");
+	lv_label_set_text(label_btn2, btn_colored_text);
 	lv_obj_set_pos(btn_more_cfg, 341, 160);
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
@@ -2081,12 +2081,14 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	// Payloads button.
 	lv_obj_t *btn_payloads = lv_btn_create(parent, btn_launch);
 	label_btn = lv_label_create(btn_payloads, label_btn);
-	lv_label_set_static_text(label_btn, " "SYMBOL_OK);
+	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_OK"#");
+	lv_label_set_text(label_btn, btn_colored_text);
 	lv_btn_set_action(btn_payloads, LV_BTN_ACTION_CLICK, _create_mbox_payloads);
 	lv_btn_set_layout(btn_payloads, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	label_btn2 = lv_label_create(btn_payloads, label_btn2);
-	lv_label_set_static_text(label_btn2, " Payloads");
+	s_printf(btn_colored_text, "%s%s", text_color, " Payloads#");
+	lv_label_set_text(label_btn2, btn_colored_text);
 	lv_obj_set_pos(btn_payloads, 632, 160);
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
@@ -2099,13 +2101,15 @@ static void _create_tab_home(lv_theme_t *th, lv_obj_t *parent)
 	// emuMMC manage button.
 	lv_obj_t *btn_emummc = lv_btn_create(parent, btn_launch);
 	label_btn = lv_label_create(btn_emummc, label_btn);
-	lv_label_set_static_text(label_btn, " "SYMBOL_LIST);
+	s_printf(btn_colored_text, "%s%s", text_color, " "SYMBOL_LIST"#");
+	lv_label_set_text(label_btn, btn_colored_text);
 	lv_btn_set_action(btn_emummc, LV_BTN_ACTION_CLICK, create_win_emummc_tools);
 	lv_btn_set_layout(btn_emummc, LV_LAYOUT_OFF);
 	lv_obj_align(label_btn, NULL, LV_ALIGN_CENTER, 0, -28);
 	lv_obj_set_pos(btn_emummc, 959, 160);
 	label_btn2 = lv_label_create(btn_emummc, label_btn2);
-	lv_label_set_static_text(label_btn2, " emuMMC");
+	s_printf(btn_colored_text, "%s%s", text_color, " emuMMC#");
+	lv_label_set_text(label_btn2, btn_colored_text);
 	lv_obj_align(label_btn2, NULL, LV_ALIGN_IN_TOP_MID, 0, 174);
 
 	// Create bottom right power buttons.
@@ -2301,10 +2305,10 @@ static void _nyx_set_default_styles(lv_theme_t * th)
 	btn_transp_rel.body.opa = LV_OPA_50;
 
 	lv_style_copy(&btn_transp_pr, th->btn.pr);
-	btn_transp_pr.body.main_color = LV_COLOR_HEX(0x888888);
+	btn_transp_pr.body.main_color = LV_COLOR_HEX(0x000000);
 	btn_transp_pr.body.grad_color = btn_transp_pr.body.main_color;
 	btn_transp_pr.body.shadow.color = LV_COLOR_HEX(0x0F0F0F);
-	btn_transp_pr.body.opa = LV_OPA_50;
+	btn_transp_pr.body.opa = LV_OPA_70;
 
 	lv_style_copy(&btn_transp_tgl_rel, th->btn.tgl_rel);
 	btn_transp_tgl_rel.body.main_color = LV_COLOR_HEX(0x444444);
@@ -2313,10 +2317,10 @@ static void _nyx_set_default_styles(lv_theme_t * th)
 	btn_transp_tgl_rel.body.opa = LV_OPA_50;
 
 	lv_style_copy(&btn_transp_tgl_pr, th->btn.tgl_pr);
-	btn_transp_tgl_pr.body.main_color = LV_COLOR_HEX(0x888888);
+	btn_transp_tgl_pr.body.main_color = LV_COLOR_HEX(0x000000);
 	btn_transp_tgl_pr.body.grad_color = btn_transp_tgl_pr.body.main_color;
 	btn_transp_tgl_pr.body.shadow.color = LV_COLOR_HEX(0x0F0F0F);
-	btn_transp_tgl_pr.body.opa = LV_OPA_50;
+	btn_transp_tgl_pr.body.opa = LV_OPA_70;
 
 	lv_style_copy(&btn_transp_ina, th->btn.ina);
 	btn_transp_ina.body.main_color = LV_COLOR_HEX(0x292929);

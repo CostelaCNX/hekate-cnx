@@ -175,12 +175,13 @@ static void btn_init(void)
 	tgl_rel.body.border.part = LV_BORDER_FULL;
 	tgl_rel.body.border.opa = LV_OPA_COVER;
 	tgl_rel.body.shadow.width = 0;
-	tgl_rel.text.color = COLOR_HOS_TURQUOISE;
+	tgl_rel.text.color = COLOR_HOS_TXT_WHITE;
 
 	lv_style_copy(&tgl_pr, &tgl_rel);
 	tgl_pr.body.main_color = COLOR_BG;
 	tgl_pr.body.grad_color = tgl_pr.body.main_color;
 	tgl_pr.body.shadow.width = 0;
+	tgl_pr.text.color = COLOR_HOS_TURQUOISE;
 
 	lv_style_copy(&ina, &rel);
 	ina.body.main_color = COLOR_BG_DARK;
@@ -469,7 +470,7 @@ static void btnm_init(void)
 	bg.body.padding.hor = 0;
 	bg.body.padding.ver = 0;
 	bg.body.padding.inner = 0;
-	bg.text.color = COLOR_HOS_TXT_WHITE;
+	bg.text.color = LV_COLOR_HEX(0x555555);
 
 	lv_style_copy(&rel, theme.panel);
 	rel.body.border.part = LV_BORDER_FULL | LV_BORDER_INTERNAL;
@@ -591,7 +592,7 @@ static void ta_init(void)
 	oneline.body.border.width = 3;
 	oneline.body.border.color = COLOR_HOS_TEAL;
 	oneline.body.border.opa = LV_OPA_COVER;
-	oneline.text.color = COLOR_HOS_TXT_WHITE;
+	oneline.text.color = LV_COLOR_HEX(0x888888);
 
 	theme.ta.area = &panel;
 	theme.ta.oneline = &oneline;
@@ -641,7 +642,7 @@ static void list_init(void)
 	lv_style_copy(&tgl_rel, &pr);
 	tgl_rel.body.main_color = COLOR_HOS_TEAL;
 	tgl_rel.body.grad_color = tgl_rel.body.main_color;
-	tgl_rel.text.color = COLOR_HOS_TXT_WHITE;
+	tgl_rel.text.color = COLOR_HOS_TEAL_LIGHTER;
 	tgl_rel.body.border.color = COLOR_HOS_TURQUOISE;
 	tgl_rel.body.border.width = 1;
 	tgl_rel.body.border.part = LV_BORDER_LEFT;
@@ -682,7 +683,7 @@ static void ddlist_init(void)
 	lv_style_copy(&sel, &bg);
 	sel.body.main_color = COLOR_HOS_TEAL;
 	sel.body.grad_color = sel.body.main_color;
-	sel.text.color = COLOR_HOS_TXT_WHITE;
+	sel.text.color = COLOR_HOS_TURQUOISE;
 
 	theme.ddlist.bg = &bg;
 	theme.ddlist.bgo = &bg;
@@ -736,12 +737,12 @@ static void tabview_init(void)
 	btn_bg.body.padding.inner = 0;
 	btn_bg.body.padding.hor = 0;
 	btn_bg.body.padding.ver = 0;
-	btn_bg.text.color = LV_COLOR_HEX(0xAAAAAA);
+	btn_bg.text.color = COLOR_HOS_TXT_WHITE;
 
 	lv_style_copy(&rel, &lv_style_transp);
 	rel.body.padding.ver = LV_DPI * 4 / 23;
 	rel.text.font = _font;
-	rel.text.color = LV_COLOR_HEX(0xAAAAAA);
+	rel.text.color = COLOR_HOS_TXT_WHITE;
 
 	lv_style_copy(&pr, &def);
 	pr.body.main_color = COLOR_BG;
@@ -752,7 +753,7 @@ static void tabview_init(void)
 	pr.body.border.color = COLOR_HOS_TURQUOISE;
 	pr.body.border.part = LV_BORDER_BOTTOM;
 	pr.body.border.opa = LV_OPA_COVER;
-	pr.text.color = COLOR_HOS_TXT_WHITE;
+	pr.text.color = COLOR_HOS_TURQUOISE;
 
 	lv_style_copy(&tgl_rel, &lv_style_transp);
 	tgl_rel.glass = 0;

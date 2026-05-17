@@ -1536,11 +1536,6 @@ static void _create_tab_tools_emmc_sd_usb(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create Backup eMMC button.
 	lv_obj_t *btn = lv_btn_create(h1, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn, LV_BTN_STYLE_REL, &btn_transp_rel);
-		lv_btn_set_style(btn, LV_BTN_STYLE_PR, &btn_transp_pr);
-	}
 	lv_obj_t *label_btn = lv_label_create(btn, NULL);
 	lv_btn_set_fit(btn, true, true);
 	lv_label_set_static_text(label_btn, SYMBOL_UPLOAD"  Backup da eMMC");
@@ -1591,11 +1586,6 @@ static void _create_tab_tools_emmc_sd_usb(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create Partition SD Card button.
 	lv_obj_t *btn3 = lv_btn_create(h2, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn3, LV_BTN_STYLE_REL, &btn_transp_rel);
-		lv_btn_set_style(btn3, LV_BTN_STYLE_PR, &btn_transp_pr);
-	}
 	label_btn = lv_label_create(btn3, NULL);
 	lv_btn_set_fit(btn3, true, true);
 	lv_label_set_static_text(label_btn, SYMBOL_SD"  Particionar SD");
@@ -1651,11 +1641,6 @@ static void _create_tab_tools_arc_rcm_pkg12(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create fix archive bit button.
 	lv_obj_t *btn = lv_btn_create(h1, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn, LV_BTN_STYLE_REL, &btn_transp_rel);
-		lv_btn_set_style(btn, LV_BTN_STYLE_PR, &btn_transp_pr);
-	}
 	lv_obj_t *label_btn = lv_label_create(btn, NULL);
 	lv_btn_set_fit(btn, true, true);
 	lv_label_set_static_text(label_btn, SYMBOL_DIRECTORY"  Corrigir bit de arquivo");
@@ -1704,14 +1689,6 @@ static void _create_tab_tools_arc_rcm_pkg12(lv_theme_t *th, lv_obj_t *parent)
 
 	// Create AutoRCM On/Off button.
 	lv_obj_t *btn3 = lv_btn_create(h2, NULL);
-	if (hekate_bg)
-	{
-		lv_btn_set_style(btn3, LV_BTN_STYLE_REL,     &btn_transp_rel);
-		lv_btn_set_style(btn3, LV_BTN_STYLE_PR,      &btn_transp_pr);
-		lv_btn_set_style(btn3, LV_BTN_STYLE_TGL_REL, &btn_transp_tgl_rel);
-		lv_btn_set_style(btn3, LV_BTN_STYLE_TGL_PR,  &btn_transp_tgl_pr);
-		lv_btn_set_style(btn3, LV_BTN_STYLE_INA,     &btn_transp_ina);
-	}
 	label_btn = lv_label_create(btn3, NULL);
 	lv_btn_set_fit(btn3, true, true);
 	lv_label_set_recolor(label_btn, true);
