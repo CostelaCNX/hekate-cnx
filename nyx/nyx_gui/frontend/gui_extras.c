@@ -57,7 +57,14 @@ static const char *theme_tids[] = {
 };
 
 // Module button labels - refreshed after a toggle.
+static lv_obj_t *mod_btns[SYSMOD_COUNT];
 static lv_obj_t *mod_btn_labels[SYSMOD_COUNT];
+static lv_obj_t *mod_sw_knobs[SYSMOD_COUNT];
+
+static lv_style_t mod_sw_track_on;
+static lv_style_t mod_sw_track_off;
+static lv_style_t mod_sw_track_ina;
+static lv_style_t mod_sw_knob;
 
 // ---------------------------------------------------------------------------
 // boot2.flag logic
@@ -123,18 +130,67 @@ static bool _module_toggle(u32 idx, bool *ok_out)
 	return want_active;
 }
 
-static void _refresh_btn_label(u32 idx, int active)
+static void _init_module_switch_styles(lv_theme_t *th)
 {
-	if (!mod_btn_labels[idx])
+	static bool inited = false;
+	if (inited)
 		return;
 
-	char label[64];
-	lv_label_set_recolor(mod_btn_labels[idx], true);
-	s_printf(label, "%s   #%s %s#",
-		sysmodules[idx].name,
-		active ? "00FF41" : "FF2200",
-		active ? "LIG" : "DESL");
-	lv_label_set_text(mod_btn_labels[idx], label);
+	lv_style_copy(&mod_sw_track_on, &lv_style_plain);
+	mod_sw_track_on.body.main_color = th->btn.rel->body.main_color;
+	mod_sw_track_on.body.grad_color = mod_sw_track_on.body.main_color;
+	mod_sw_track_on.body.radius = LV_RADIUS_CIRCLE;
+	mod_sw_track_on.body.border.width = 0;
+	mod_sw_track_on.body.shadow.color = LV_COLOR_HEX(0x000000);
+	mod_sw_track_on.body.shadow.type = LV_SHADOW_BOTTOM;
+	mod_sw_track_on.body.shadow.width = 4;
+
+	lv_style_copy(&mod_sw_track_off, &mod_sw_track_on);
+	mod_sw_track_off.body.main_color = LV_COLOR_HEX(0x3A3A3A);
+	mod_sw_track_off.body.grad_color = mod_sw_track_off.body.main_color;
+	mod_sw_track_off.body.border.width = 2;
+	mod_sw_track_off.body.border.color = LV_COLOR_HEX(0x6A6A6A);
+
+	lv_style_copy(&mod_sw_track_ina, &mod_sw_track_on);
+	mod_sw_track_ina.body.main_color = LV_COLOR_HEX(0x444444);
+	mod_sw_track_ina.body.grad_color = mod_sw_track_ina.body.main_color;
+	mod_sw_track_ina.body.opa = LV_OPA_50;
+
+	lv_style_copy(&mod_sw_knob, &lv_style_plain);
+	mod_sw_knob.body.main_color = LV_COLOR_HEX(0xFFFFFF);
+	mod_sw_knob.body.grad_color = mod_sw_knob.body.main_color;
+	mod_sw_knob.body.radius = LV_RADIUS_CIRCLE;
+	mod_sw_knob.body.border.width = 0;
+	mod_sw_knob.body.shadow.color = LV_COLOR_HEX(0x000000);
+	mod_sw_knob.body.shadow.type = LV_SHADOW_BOTTOM;
+	mod_sw_knob.body.shadow.width = 5;
+
+	inited = true;
+}
+
+static void _refresh_module_button(u32 idx, int active)
+{
+	if (!mod_btns[idx] || !mod_btn_labels[idx] || !mod_sw_knobs[idx])
+		return;
+
+	lv_label_set_static_text(mod_btn_labels[idx], sysmodules[idx].name);
+
+	if (active < 0)
+	{
+		lv_btn_set_state(mod_btns[idx], LV_BTN_STATE_INA);
+		lv_btn_set_style(mod_btns[idx], LV_BTN_STYLE_REL, &mod_sw_track_ina);
+		lv_btn_set_style(mod_btns[idx], LV_BTN_STYLE_PR,  &mod_sw_track_ina);
+		lv_obj_align(mod_sw_knobs[idx], mod_btns[idx], LV_ALIGN_IN_LEFT_MID, LV_DPI / 50, 0);
+	}
+	else
+	{
+		lv_btn_set_state(mod_btns[idx], LV_BTN_STATE_REL);
+		lv_btn_set_style(mod_btns[idx], LV_BTN_STYLE_REL, active ? &mod_sw_track_on : &mod_sw_track_off);
+		lv_btn_set_style(mod_btns[idx], LV_BTN_STYLE_PR,  active ? &mod_sw_track_on : &mod_sw_track_off);
+		lv_obj_align(mod_sw_knobs[idx], mod_btns[idx],
+			active ? LV_ALIGN_IN_RIGHT_MID : LV_ALIGN_IN_LEFT_MID,
+			active ? -(LV_DPI / 50) : LV_DPI / 50, 0);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +234,7 @@ static lv_res_t _action_toggle_module(lv_obj_t *btn)
 		bool ok;
 		bool now_active = _module_toggle(idx, &ok);
 		if (ok)
-			_refresh_btn_label(idx, now_active);
+			_refresh_module_button(idx, now_active);
 		sd_unmount();
 	}
 	return LV_RES_OK;
@@ -293,6 +349,7 @@ static lv_obj_t *_section_header(lv_obj_t *parent, u32 col_w, const char *title)
 void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 {
 	lv_page_set_scrl_layout(parent, LV_LAYOUT_PRETTY);
+	_init_module_switch_styles(th);
 
 	// Read module states once when the tab loads.
 	int mod_states[SYSMOD_COUNT];
@@ -311,29 +368,41 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 
 	for (u32 i = 0; i < SYSMOD_COUNT; i++)
 	{
-		lv_obj_t *btn = lv_btn_create(h_left, NULL);
+		lv_obj_t *row = lv_cont_create(h_left, NULL);
+		lv_cont_set_style(row, &lv_style_transp);
+		lv_cont_set_layout(row, LV_LAYOUT_OFF);
+		lv_obj_set_click(row, false);
+		lv_obj_set_size(row, btn_w, LV_DPI * 3 / 5);
+		lv_obj_align(row, anchor, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 5);
+
+		lv_obj_t *label_btn = lv_btn_create(row, NULL);
+		lv_btn_set_layout(label_btn, LV_LAYOUT_OFF);
+		lv_obj_set_click(label_btn, false);
+		lv_obj_set_size(label_btn, LV_DPI * 29 / 10, LV_DPI * 3 / 5);
+		lv_obj_align(label_btn, row, LV_ALIGN_IN_LEFT_MID, 0, 0);
+
+		lv_obj_t *btn = lv_btn_create(row, NULL);
 		lv_btn_ext_t *ext = lv_obj_get_ext_attr(btn);
 		ext->idx = i;
 		lv_btn_set_action(btn, LV_BTN_ACTION_CLICK, _action_toggle_module);
-		lv_obj_set_width(btn, btn_w);
-		lv_obj_align(btn, anchor, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 5);
+		lv_btn_set_layout(btn, LV_LAYOUT_OFF);
+		lv_obj_set_size(btn, LV_DPI * 4 / 5, LV_DPI * 2 / 5);
+		lv_obj_align(btn, label_btn, LV_ALIGN_OUT_RIGHT_MID, LV_DPI / 5, 0);
+		mod_btns[i] = btn;
 
-		lv_obj_t *lbl = lv_label_create(btn, NULL);
-		lv_label_set_recolor(lbl, true);
+		lv_obj_t *lbl = lv_label_create(label_btn, NULL);
 		mod_btn_labels[i] = lbl;
+		lv_obj_align(lbl, label_btn, LV_ALIGN_IN_LEFT_MID, LV_DPI / 4, 0);
 
-		int active = mod_states[i];
-		char label[64];
-		if (active < 0)
-			s_printf(label, "%s   #AAAAAA ---#", sysmodules[i].name);
-		else
-			s_printf(label, "%s   #%s %s#",
-				sysmodules[i].name,
-				active ? "00FF41" : "FF2200",
-				active ? "LIG" : "DESL");
-		lv_label_set_text(lbl, label);
+		lv_obj_t *sw_knob = lv_cont_create(btn, NULL);
+		lv_obj_set_click(sw_knob, false);
+		lv_cont_set_style(sw_knob, &mod_sw_knob);
+		lv_obj_set_size(sw_knob, LV_DPI * 7 / 20, LV_DPI * 7 / 20);
+		mod_sw_knobs[i] = sw_knob;
 
-		anchor = btn;
+		_refresh_module_button(i, mod_states[i]);
+
+		anchor = row;
 	}
 
 	// === Right column ===
