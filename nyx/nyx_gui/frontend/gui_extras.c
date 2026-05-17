@@ -1,11 +1,20 @@
 /*
- * CNX Loader — Extras tab
- * Controle de sysmodules e remoção de temas customizados
+ * Extras tab for Nyx GUI - part of the hekate project.
+ * Sysmodule toggles and custom theme removal.
+ *
  * Copyright (c) 2026 CostelaBR
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
  * version 2, as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <string.h>
@@ -18,7 +27,7 @@
 #include <libs/fatfs/ff.h>
 
 // ---------------------------------------------------------------------------
-// Módulos — toggle via <TID>/flags/boot2.flag
+// Sysmodules - toggled via <TID>/flags/boot2.flag
 // ---------------------------------------------------------------------------
 
 #define MAX_TIDS 4
@@ -37,7 +46,7 @@ static const sysmod_t sysmodules[] = {
 
 #define SYSMOD_COUNT (sizeof(sysmodules) / sizeof(sysmodules[0]))
 
-// TIDs dos temas customizados em atmosphere/contents/
+// Custom theme TIDs under atmosphere/contents/
 static const char *theme_tids[] = {
 	"0100000000001000",
 	"0100000000001013",
@@ -47,11 +56,11 @@ static const char *theme_tids[] = {
 	NULL
 };
 
-// Ponteiros para os labels dos botões de módulo — atualizados após toggle
+// Module button labels - refreshed after a toggle.
 static lv_obj_t *mod_btn_labels[SYSMOD_COUNT];
 
 // ---------------------------------------------------------------------------
-// Lógica de boot2.flag
+// boot2.flag logic
 // ---------------------------------------------------------------------------
 
 static void _flag_path(const char *tid, char *out)
@@ -129,7 +138,7 @@ static void _refresh_btn_label(u32 idx, int active)
 }
 
 // ---------------------------------------------------------------------------
-// Remoção recursiva
+// Recursive removal
 // ---------------------------------------------------------------------------
 
 static FRESULT _rm_recursive(const char *path)
@@ -278,14 +287,14 @@ static lv_obj_t *_section_header(lv_obj_t *parent, u32 col_w, const char *title)
 }
 
 // ---------------------------------------------------------------------------
-// Tab principal
+// Main tab
 // ---------------------------------------------------------------------------
 
 void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 {
 	lv_page_set_scrl_layout(parent, LV_LAYOUT_PRETTY);
 
-	// Ler estado dos módulos uma vez ao carregar a aba
+	// Read module states once when the tab loads.
 	int mod_states[SYSMOD_COUNT];
 	bool sd_ok = !sd_mount();
 	for (u32 i = 0; i < SYSMOD_COUNT; i++)
@@ -296,7 +305,7 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 	u32 col_w = (LV_HOR_RES / 9) * 4;
 	u32 btn_w = col_w - LV_DPI;
 
-	// === Coluna esquerda ===
+	// === Left column ===
 	lv_obj_t *h_left = _make_col(parent, col_w);
 	lv_obj_t *anchor = _section_header(h_left, col_w, "Módulos do Sistema");
 
@@ -327,7 +336,7 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 		anchor = btn;
 	}
 
-	// === Coluna direita ===
+	// === Right column ===
 	lv_obj_t *h_right = _make_col(parent, col_w);
 	lv_obj_t *anchor2 = _section_header(h_right, col_w, "Temas Customizados");
 
