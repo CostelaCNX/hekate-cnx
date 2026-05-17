@@ -23,6 +23,7 @@
 #include "gui_tools.h"
 #include "gui_info.h"
 #include "gui_options.h"
+#include "gui_extras.h"
 #include <libs/lvgl/lv_themes/lv_theme_hekate.h>
 #include <libs/lvgl/lvgl.h>
 #include "../gfx/logos-gui.h"
@@ -2388,6 +2389,15 @@ static void _nyx_main_menu(lv_theme_t * th)
 	lv_tabview_set_sliding(tv, false);
 	lv_obj_set_size(tv, LV_HOR_RES, LV_VER_RES);
 
+	// Compact tab buttons so 6 tabs fit without crowding.
+	static lv_style_t tab_btn_rel, tab_btn_tgl_rel;
+	lv_style_copy(&tab_btn_rel,     th->tabview.btn.rel);
+	lv_style_copy(&tab_btn_tgl_rel, th->tabview.btn.tgl_rel);
+	tab_btn_rel.body.padding.ver     = LV_DPI / 10;
+	tab_btn_tgl_rel.body.padding.ver = LV_DPI / 10;
+	lv_tabview_set_style(tv, LV_TABVIEW_STYLE_BTN_REL,     &tab_btn_rel);
+	lv_tabview_set_style(tv, LV_TABVIEW_STYLE_BTN_TGL_REL, &tab_btn_tgl_rel);
+
 	// Add all tabs content.
 	char version[32];
 	char rel = (nyx_str->version >> 24) & 0xFF;
@@ -2402,17 +2412,22 @@ static void _nyx_main_menu(lv_theme_t * th)
 	lv_page_set_style(tab_tools, LV_PAGE_STYLE_BG, &no_padding);
 	lv_page_set_style(tab_tools, LV_PAGE_STYLE_SCRL, &no_padding);
 
-	lv_obj_t *tab_info = lv_tabview_add_tab(tv, SYMBOL_INFO" Info do Console");
+	lv_obj_t *tab_info = lv_tabview_add_tab(tv, SYMBOL_INFO" Console Info");
 	lv_page_set_style(tab_info, LV_PAGE_STYLE_BG, &no_padding);
 	lv_page_set_style(tab_info, LV_PAGE_STYLE_SCRL, &no_padding);
 
 	lv_obj_t *tab_options = lv_tabview_add_tab(tv, SYMBOL_SETTINGS" Opções");
+
+	lv_obj_t *tab_extras = lv_tabview_add_tab(tv, SYMBOL_HINT" Extras");
+	lv_page_set_style(tab_extras, LV_PAGE_STYLE_BG, &no_padding);
+	lv_page_set_style(tab_extras, LV_PAGE_STYLE_SCRL, &no_padding);
 
 	_create_tab_about(th, tab_about);
 	_create_tab_home(th, tab_home);
 	create_tab_tools(th, tab_tools);
 	create_tab_info(th, tab_info);
 	create_tab_options(th, tab_options);
+	create_tab_extras(th, tab_extras);
 
 	lv_tabview_set_tab_act(tv, 1, false);
 
