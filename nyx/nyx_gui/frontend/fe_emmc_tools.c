@@ -603,7 +603,7 @@ static int _dump_emmc_part(emmc_tool_gui_t *gui, char *sd_path, int active_part,
 			// Create next part.
 			s_printf(gui->txt_buf, "%s#", outFilename + strlen(gui->base_path));
 			lv_label_cut_text(gui->label_info,
-				strlen(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
+				lv_txt_get_encoded_length(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
 				strlen(outFilename + strlen(gui->base_path)) + 1);
 			lv_label_ins_text(gui->label_info, LV_LABEL_POS_LAST, gui->txt_buf);
 			manual_system_maintenance(true);
@@ -1021,7 +1021,7 @@ static int _restore_emmc_part(emmc_tool_gui_t *gui, char *sd_path, int active_pa
 
 			s_printf(gui->txt_buf, "%s#", outFilename + strlen(gui->base_path));
 			lv_label_cut_text(gui->label_info,
-				strlen(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
+				lv_txt_get_encoded_length(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
 				strlen(outFilename + strlen(gui->base_path)) + 1);
 			lv_label_ins_text(gui->label_info, LV_LABEL_POS_LAST, gui->txt_buf);
 			manual_system_maintenance(true);
@@ -1121,7 +1121,7 @@ multipart_not_allowed:
 	{
 		s_printf(gui->txt_buf, "%s#", outFilename + strlen(gui->base_path));
 		lv_label_cut_text(gui->label_info,
-			strlen(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
+			lv_txt_get_encoded_length(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
 			strlen(outFilename + strlen(gui->base_path)) + 1);
 		lv_label_ins_text(gui->label_info, LV_LABEL_POS_LAST, gui->txt_buf);
 		manual_system_maintenance(true);
@@ -1265,7 +1265,7 @@ multipart_not_allowed:
 			// Read from next part.
 			s_printf(gui->txt_buf, "%s#", outFilename + strlen(gui->base_path));
 			lv_label_cut_text(gui->label_info,
-				strlen(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
+				lv_txt_get_encoded_length(lv_label_get_text(gui->label_info)) - strlen(outFilename + strlen(gui->base_path)) - 1,
 				strlen(outFilename + strlen(gui->base_path)) + 1);
 			lv_label_ins_text(gui->label_info, LV_LABEL_POS_LAST, gui->txt_buf);
 			manual_system_maintenance(true);
