@@ -24,6 +24,7 @@
 #include <mem/heap.h>
 #include <sec/se.h>
 #include <storage/emmc.h>
+#include <storage/emummc_file_based.h>
 #include <storage/sd.h>
 #include <storage/sdmmc.h>
 #include <utils/types.h>
@@ -52,7 +53,8 @@ typedef struct _bis_cache_t
 
 static u8  ks_crypt = 0;
 static u8  ks_tweak = 0;
-static u32 emu_offset = 0;
+static u32  emu_offset   = 0;
+static bool bis_file_based = false;
 static emmc_part_t *system_part = NULL;
 static u32 *cache_lookup_tbl = (u32 *)NX_BIS_LOOKUP_ADDR;
 static bis_cache_t *bis_cache = (bis_cache_t *)NX_BIS_CACHE_ADDR;
@@ -95,7 +97,9 @@ static int nx_emmc_bis_write_block(u32 sector, u32 count, void *buff, bool flush
 		return 1; // Encryption error.
 
 	// If not reading from cache, do a regular read and decrypt.
-	if (!emu_offset)
+	if (bis_file_based)
+		res = emummc_storage_file_based_write(system_part->lba_start + sector, count, bis_cache->dma_buff) ? 0 : 1;
+	else if (!emu_offset)
 		res = emmc_part_write(system_part, sector, count, bis_cache->dma_buff);
 	else
 		res = sdmmc_storage_write(&sd_storage, emu_offset + system_part->lba_start + sector, count, bis_cache->dma_buff);
@@ -155,7 +159,9 @@ static int nx_emmc_bis_read_block_normal(u32 sector, u32 count, void *buff)
 	u32  sector_in_cluster = sector % BIS_CLUSTER_SECTORS;
 
 	// If not reading from cache, do a regular read and decrypt.
-	if (!emu_offset)
+	if (bis_file_based)
+		res = emummc_storage_file_based_read(system_part->lba_start + sector, count, bis_cache->dma_buff) ? 0 : 1;
+	else if (!emu_offset)
 		res = emmc_part_read(system_part, sector, count, bis_cache->dma_buff);
 	else
 		res = sdmmc_storage_read(&sd_storage, emu_offset + system_part->lba_start + sector, count, bis_cache->dma_buff);
@@ -212,7 +218,9 @@ static int nx_emmc_bis_read_block_cached(u32 sector, u32 count, void *buff)
 	cache_lookup_tbl[cluster] = bis_cache->top_idx;
 
 	// Read the whole cluster the sector resides in.
-	if (!emu_offset)
+	if (bis_file_based)
+		res = emummc_storage_file_based_read(system_part->lba_start + cluster_sector, BIS_CLUSTER_SECTORS, bis_cache->dma_buff) ? 0 : 1;
+	else if (!emu_offset)
 		res = emmc_part_read(system_part, cluster_sector, BIS_CLUSTER_SECTORS, bis_cache->dma_buff);
 	else
 		res = sdmmc_storage_read(&sd_storage, emu_offset + system_part->lba_start + cluster_sector, BIS_CLUSTER_SECTORS, bis_cache->dma_buff);
@@ -294,8 +302,9 @@ int nx_emmc_bis_write(u32 sector, u32 count, void *buff)
 
 void nx_emmc_bis_init(emmc_part_t *part, bool enable_cache, u32 emummc_offset)
 {
-	system_part = part;
-	emu_offset = emummc_offset;
+	system_part    = part;
+	emu_offset     = emummc_offset;
+	bis_file_based = false;
 
 	_nx_emmc_bis_cluster_cache_init(enable_cache);
 
@@ -318,8 +327,26 @@ void nx_emmc_bis_init(emmc_part_t *part, bool enable_cache, u32 emummc_offset)
 		system_part = NULL;
 }
 
+void nx_emmc_bis_init_file_based(emmc_part_t *part, bool enable_cache, const char *base_path)
+{
+	system_part    = part;
+	emu_offset     = 0;
+	bis_file_based = true;
+
+	emummc_storage_file_based_init(base_path);
+	emummc_storage_file_base_set_partition(0); // GPP
+
+	_nx_emmc_bis_cluster_cache_init(enable_cache);
+
+	ks_crypt = 4;
+	ks_tweak = 5;
+}
+
 void nx_emmc_bis_end()
 {
 	_nx_emmc_bis_flush_cache();
-	system_part = NULL;
+	if (bis_file_based)
+		emummc_storage_file_based_end();
+	bis_file_based = false;
+	system_part    = NULL;
 }

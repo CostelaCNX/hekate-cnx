@@ -37,7 +37,7 @@ OBJS += actmon bpmp ccplex clock di vic i2c irq timer \
 		gpio  pinmux pmc se smmu tsec uart \
 		fuse kfuse \
 		mc sdram minerva ramdisk \
-		sdmmc sdmmc_driver emmc sd nx_emmc_bis \
+		sdmmc sdmmc_driver emmc sd nx_emmc_bis emummc_file_based \
 		bm92t36 bq24193 max17050 max7762x max77620-rtc regulator_5v \
 		touch joycon tmp451 fan \
 		usbd xusbd usb_descriptors usb_gadget_ums usb_gadget_hid \
