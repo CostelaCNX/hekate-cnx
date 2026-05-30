@@ -22,6 +22,7 @@
 #include "fe_emummc_tools.h"
 #include "gui_tools_partition_manager.h"
 #include <libs/fatfs/ff.h>
+#include <libs/lvgl/lv_objx/lv_slider.h>
 
 extern char *emmcsn_path_impl(char *path, char *sub_dir, char *filename, sdmmc_storage_t *storage);
 
@@ -39,6 +40,16 @@ static bool emummc_backup;
 static mbr_ctxt_t mbr_ctx;
 static lv_obj_t *emummc_manage_window;
 static lv_res_t (*emummc_tools)(lv_obj_t *btn);
+
+static u32 emummc_file_resized_cnt;
+
+typedef struct _slider_ctx_t {
+	lv_obj_t *label;
+	u32 emu_size;
+	u32 full_size;
+} slider_ctx_t;
+
+static slider_ctx_t slider_ctx;
 
 static lv_res_t _action_emummc_window_close(lv_obj_t *btn)
 {
@@ -132,7 +143,10 @@ static void _create_window_emummc()
 	emmc_tool_gui_ctxt.label_finish = label_finish;
 
 	if (!mbr_ctx.part_idx)
-		dump_emummc_file(&emmc_tool_gui_ctxt, 0);
+	{
+		dump_emummc_file(&emmc_tool_gui_ctxt, emummc_file_resized_cnt);
+		emummc_file_resized_cnt = 0;
+	}
 	else
 		dump_emummc_raw(&emmc_tool_gui_ctxt, mbr_ctx.part_idx, mbr_ctx.sector_start, mbr_ctx.resized_cnt[mbr_ctx.part_idx - 1]);
 
@@ -309,10 +323,165 @@ static void _create_mbox_emummc_raw()
 	lv_obj_set_top(mbox, true);
 }
 
+// ---- Seleção de tamanho para emuMMC em arquivo ----
+
+static lv_res_t _action_slider_emummc_file(lv_obj_t *slider)
+{
+	u32 slider_val = lv_slider_get_value(slider);
+	u32 size = slider_val << 10; // GiB → MB
+
+	// Snap para tamanho completo se estiver dentro de ±3 GiB
+	if (size >= (slider_ctx.full_size > (3 * 1024) ? slider_ctx.full_size - (3 * 1024) : 0) &&
+	    size <= slider_ctx.full_size + (3 * 1024))
+	{
+		size = slider_ctx.full_size;
+		lv_slider_set_value(slider, size >> 10);
+	}
+
+	slider_ctx.emu_size = size;
+
+	char txt_buf[0x20];
+	if (size == slider_ctx.full_size)
+		s_printf(txt_buf, "#C7EA46 %d COMPLETO#", size >> 10);
+	else
+		s_printf(txt_buf, "#C7EA46 %d GiB#", size >> 10);
+
+	lv_label_set_text(slider_ctx.label, txt_buf);
+	return LV_RES_OK;
+}
+
+static lv_res_t _create_emummc_file_based_action(lv_obj_t *btns, const char *txt)
+{
+	int idx = lv_btnm_get_pressed(btns);
+
+	if (!idx && slider_ctx.emu_size)
+	{
+		emummc_file_resized_cnt = (slider_ctx.emu_size != slider_ctx.full_size)
+			? slider_ctx.emu_size << 11  // MB → sectors
+			: 0;
+
+		mbr_ctx.part_idx = 0;
+		mbr_ctx.sector_start = 0;
+
+		lv_obj_t *bg = lv_obj_get_parent(lv_obj_get_parent(btns));
+		lv_obj_set_style(bg, &lv_style_transp);
+		_create_window_emummc();
+	}
+
+	nyx_mbox_action(btns, txt);
+	return LV_RES_INV;
+}
+
+static void _create_mbox_emummc_file_based()
+{
+	lv_obj_t *dark_bg = lv_obj_create(lv_scr_act(), NULL);
+	lv_obj_set_style(dark_bg, &mbox_darken);
+	lv_obj_set_size(dark_bg, LV_HOR_RES, LV_VER_RES);
+
+	lv_obj_t *mbox = lv_mbox_create(dark_bg, NULL);
+	lv_mbox_set_recolor_text(mbox, true);
+	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 6);
+
+	static const char *mbox_btns[]    = { "\222Continuar", "\222Cancelar", "" };
+	static const char *mbox_btns_ok[] = { "\251", "\222OK", "\251", "" };
+
+	lv_mbox_set_text(mbox, "#C7EA46 Selecionar tamanho do emuMMC!#\n\n"
+	                       "#00DDFF Status:# Verificando espaço disponível...");
+	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
+	manual_system_maintenance(true);
+
+	emmc_initialize(false);
+	u32 value_full = emmc_storage.sec_cnt >> 11; // sectors → GiB (x2)
+	emmc_end();
+
+	sd_mount();
+	f_getfree("sd:", &sd_fs.free_clst, NULL);
+	sd_unmount();
+
+	// Espaço livre em MB, menos 1 GiB de buffer de segurança
+	u32 available = (sd_fs.free_clst * sd_fs.csize) >> 11; // sectors → GiB-ish (MB)
+	available = available > (5 * 1024) ? available - (1 * 1024) : 0;
+
+	char *txt_buf = malloc(SZ_4K);
+
+	if (!available)
+	{
+		s_printf(txt_buf, "#C7EA46 Selecionar tamanho do emuMMC!#\n\n"
+		                  "#FFDD00 Atenção:# Espaço insuficiente no SD.");
+		lv_mbox_set_text(mbox, txt_buf);
+	}
+	else if (value_full > available)
+	{
+		s_printf(txt_buf, "#C7EA46 Selecionar tamanho do emuMMC!#\n\n"
+		                  "#FFDD00 Atenção:# Espaço insuficiente para emuMMC completo.\n"
+		                  "A partição USER será redimensionada e formatada.");
+		lv_mbox_set_text(mbox, txt_buf);
+	}
+	else
+	{
+		lv_mbox_set_text(mbox, "#C7EA46 Selecionar tamanho do emuMMC!#\n\n"
+		                       "#FFDD00 Nota:# Qualquer valor diferente de \"COMPLETO\" formatará a USER.");
+	}
+	free(txt_buf);
+
+	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
+
+	slider_ctx.full_size = value_full;
+	slider_ctx.emu_size  = (value_full > available) ? available : value_full;
+
+	if (available)
+	{
+		lv_coord_t pad = lv_mbox_get_style(mbox, LV_MBOX_STYLE_BG)->body.padding.hor;
+		lv_coord_t w   = lv_obj_get_width(mbox) - 2 * pad - 2 * LV_DPI;
+
+		// Estilos do slider usando as cores do tema
+		static lv_style_t bar_bg, bar_ind, bar_btn;
+		lv_style_copy(&bar_bg,  lv_theme_get_current()->bar.bg);
+		lv_style_copy(&bar_ind, lv_theme_get_current()->bar.indic);
+		lv_style_copy(&bar_btn, lv_theme_get_current()->slider.knob);
+
+		lv_obj_t *slider_cont = lv_cont_create(mbox, NULL);
+		lv_cont_set_fit(slider_cont, false, true);
+		lv_cont_set_style(slider_cont, &lv_style_transp);
+		lv_obj_set_width(slider_cont, lv_obj_get_width(mbox));
+
+		lv_obj_t *slider = lv_slider_create(slider_cont, NULL);
+		lv_obj_set_size(slider, w, LV_DPI / 3);
+		lv_slider_set_range(slider, 4, available >> 10);
+		lv_slider_set_value(slider, slider_ctx.emu_size >> 10);
+		lv_slider_set_style(slider, LV_SLIDER_STYLE_BG,    &bar_bg);
+		lv_slider_set_style(slider, LV_SLIDER_STYLE_INDIC, &bar_ind);
+		lv_slider_set_style(slider, LV_SLIDER_STYLE_KNOB,  &bar_btn);
+		lv_slider_set_action(slider, _action_slider_emummc_file);
+		lv_obj_align(slider, slider_cont, LV_ALIGN_CENTER, -(LV_DPI / 2), 0);
+
+		lv_obj_t *label = lv_label_create(slider_cont, NULL);
+		lv_label_set_recolor(label, true);
+
+		char size_buf[0x20];
+		if (slider_ctx.emu_size == value_full)
+			s_printf(size_buf, "#C7EA46 %d COMPLETO#", slider_ctx.emu_size >> 10);
+		else
+			s_printf(size_buf, "#C7EA46 %d GiB#", slider_ctx.emu_size >> 10);
+		lv_label_set_text(label, size_buf);
+		lv_obj_align(label, slider, LV_ALIGN_OUT_RIGHT_MID, LV_DPI * 2 / 5, 0);
+		slider_ctx.label = label;
+	}
+
+	if (available)
+		lv_mbox_add_btns(mbox, mbox_btns, _create_emummc_file_based_action);
+	else
+		lv_mbox_add_btns(mbox, mbox_btns_ok, _create_emummc_file_based_action);
+
+	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_set_top(mbox, true);
+}
+
+// ---- fim seleção de tamanho ----
+
 static lv_res_t _create_emummc_action(lv_obj_t * btns, const char * txt)
 {
 	int btn_idx = lv_btnm_get_pressed(btns);
-	lv_obj_t *bg = lv_obj_get_parent(lv_obj_get_parent(btns));
 
 	mbr_ctx.part_idx = 0;
 	mbr_ctx.sector_start = 0;
@@ -320,8 +489,7 @@ static lv_res_t _create_emummc_action(lv_obj_t * btns, const char * txt)
 	switch (btn_idx)
 	{
 	case 0:
-		lv_obj_set_style(bg, &lv_style_transp);
-		_create_window_emummc();
+		_create_mbox_emummc_file_based();
 		break;
 	case 1:
 		_create_mbox_emummc_raw();
