@@ -132,7 +132,7 @@ static void _create_window_emummc()
 	emmc_tool_gui_ctxt.label_finish = label_finish;
 
 	if (!mbr_ctx.part_idx)
-		dump_emummc_file(&emmc_tool_gui_ctxt);
+		dump_emummc_file(&emmc_tool_gui_ctxt, 0);
 	else
 		dump_emummc_raw(&emmc_tool_gui_ctxt, mbr_ctx.part_idx, mbr_ctx.sector_start, mbr_ctx.resized_cnt[mbr_ctx.part_idx - 1]);
 

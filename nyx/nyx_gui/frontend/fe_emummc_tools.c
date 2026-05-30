@@ -34,6 +34,8 @@
 #define OUT_FILENAME_SZ      128
 #define NUM_SECTORS_PER_ITER 8192 // 4MB Cache.
 
+static int _emummc_resize_user(emmc_tool_gui_t *gui, u32 user_offset, u32 resized_cnt, const char *file_based_path);
+
 void load_emummc_cfg(emummc_cfg_t *emu_info)
 {
 	memset(emu_info, 0, sizeof(emummc_cfg_t));
@@ -141,13 +143,13 @@ void update_emummc_base_folder(char *outFilename, u32 sdPathLen, u32 currPartIdx
 		itoa(currPartIdx, &outFilename[sdPathLen], 10);
 }
 
-static int _dump_emummc_file_part(emmc_tool_gui_t *gui, char *sd_path, sdmmc_storage_t *storage, const emmc_part_t *part)
+static int _dump_emummc_file_part(emmc_tool_gui_t *gui, char *sd_path, sdmmc_storage_t *storage, const emmc_part_t *part, u32 resized_cnt)
 {
 	static const u32 FAT32_FILESIZE_LIMIT = 0xFFFFFFFF;
 	static const u32 SECTORS_TO_MIB_COEFF = 11;
 
 	u32 multipartSplitSize = 0xFE000000;
-	u32 totalSectors = part->lba_end - part->lba_start + 1;
+	u32 totalSectors = resized_cnt ? resized_cnt : part->lba_end - part->lba_start + 1;
 	u32 currPartIdx = 0;
 	u32 numSplitParts = 0;
 	int res = 0;
@@ -354,7 +356,7 @@ static int _dump_emummc_file_part(emmc_tool_gui_t *gui, char *sd_path, sdmmc_sto
 	return 0;
 }
 
-void dump_emummc_file(emmc_tool_gui_t *gui)
+void dump_emummc_file(emmc_tool_gui_t *gui, u32 resized_cnt)
 {
 	int res = 1;
 	int base_len = 0;
@@ -431,7 +433,7 @@ void dump_emummc_file(emmc_tool_gui_t *gui)
 		emmc_set_partition(i + 1);
 
 		strcat(sdPath, bootPart.name);
-		res = _dump_emummc_file_part(gui, sdPath, &emmc_storage, &bootPart);
+		res = _dump_emummc_file_part(gui, sdPath, &emmc_storage, &bootPart, 0);
 
 		if (res)
 		{
@@ -466,15 +468,49 @@ void dump_emummc_file(emmc_tool_gui_t *gui)
 	lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, txt_buf);
 	manual_system_maintenance(true);
 
-	res = _dump_emummc_file_part(gui, sdPath, &emmc_storage, &rawPart);
+	res = _dump_emummc_file_part(gui, sdPath, &emmc_storage, &rawPart, resized_cnt);
 
 	if (res)
+	{
 		s_printf(txt_buf, "#FFDD00 Falhou!#\n");
-	else
-		s_printf(txt_buf, "Concluído!\n");
+		lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, txt_buf);
+		manual_system_maintenance(true);
+		goto out_failed;
+	}
 
+	s_printf(txt_buf, "Concluído!\n");
 	lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, txt_buf);
 	manual_system_maintenance(true);
+
+	// Resize USER if a smaller size was requested.
+	if (resized_cnt && emummc_raw_derive_bis_keys())
+	{
+		// Read GPT from the file-based image to locate USER lba_start.
+		gpt_t *gpt_img = zalloc(sizeof(*gpt_img));
+		emummc_storage_file_based_init(gui->base_path);
+		emummc_storage_file_based_read(1, sizeof(*gpt_img) / 0x200, gpt_img);
+		emummc_storage_file_based_end();
+
+		u32 user_offset = 0;
+		for (u32 ei = 0; ei < gpt_img->header.num_part_ents; ei++)
+		{
+			if (!memcmp(gpt_img->entries[ei].name, (char[]) { 'U', 0, 'S', 0, 'E', 0, 'R', 0 }, 8))
+			{
+				user_offset = (u32)gpt_img->entries[ei].lba_start;
+				break;
+			}
+		}
+		free(gpt_img);
+
+		if (user_offset)
+		{
+			if (_emummc_resize_user(gui, user_offset, resized_cnt, gui->base_path) != FR_OK)
+			{
+				res = 1;
+				goto out_failed;
+			}
+		}
+	}
 
 out_failed:
 	timer = get_tmr_s() - timer;
