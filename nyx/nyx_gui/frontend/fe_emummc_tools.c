@@ -588,23 +588,34 @@ static int _emummc_resize_user(emmc_tool_gui_t *gui, u32 user_offset, u32 resize
 	mbr.partitions[0].end_sct_chs.head       = 0xFF;
 	mbr.partitions[0].size_sct = 0xFFFFFFFF;
 
-	gpt_t          *gpt = zalloc(sizeof(*gpt));
-	gpt_header_t    gpt_hdr_backup = {0};
+	gpt_t        *gpt = zalloc(sizeof(*gpt));
+	gpt_header_t  gpt_hdr_backup = {0};
 
-	// Read current GPT via the file-based storage layer.
+	// Read GPT from the real eMMC (still mounted) to get the full partition layout.
+	// Using the same no-check pattern as the rest of this file (sdmmc_storage_read
+	// returns 0 on success in this bdk, not 1).
+	sdmmc_storage_read(&emmc_storage, 1,                      sizeof(*gpt) / 0x200, gpt);
+	sdmmc_storage_read(&emmc_storage, gpt->header.alt_lba, 1, &gpt_hdr_backup);
+
+	// Use the file-based storage to write the updated GPT back to the image.
 	emummc_storage_file_based_init(file_based_path);
 
-	res = 1;
-	res &= sdmmc_storage_read(&emmc_storage, 1,                       sizeof(*gpt) / 0x200, gpt);
-	res &= sdmmc_storage_read(&emmc_storage, gpt->header.alt_lba, 1, &gpt_hdr_backup);
-
-	if (!res)
+	// Validate: signature must be "EFI PART" (little-endian 0x5452415020494645).
+	if (gpt->header.signature != 0x5452415020494645ULL)
 	{
 		s_printf(gui->txt_buf, "\n#FF0000 Falha ao ler GPT original!#\nTente novamente...\n");
 		lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
 		free(gpt);
 		emummc_storage_file_based_end();
 		return FR_DISK_ERR;
+	}
+
+	// If backup GPT read failed (all zeros), reconstruct from main header.
+	if (!gpt_hdr_backup.size)
+	{
+		memcpy(&gpt_hdr_backup, &gpt->header, sizeof(gpt_header_t));
+		gpt_hdr_backup.my_lba  = gpt->header.alt_lba;
+		gpt_hdr_backup.alt_lba = gpt->header.my_lba;
 	}
 
 	// Find USER entry index.

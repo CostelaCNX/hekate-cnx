@@ -340,9 +340,9 @@ static lv_res_t _action_slider_emummc_file(lv_obj_t *slider)
 
 	slider_ctx.emu_size = size;
 
-	char txt_buf[0x20];
+	char txt_buf[0x30];
 	if (size == slider_ctx.full_size)
-		s_printf(txt_buf, "#C7EA46 %d COMPLETO#", size >> 10);
+		s_printf(txt_buf, "#C7EA46 %d GiB - COMPLETO#", size >> 10);
 	else
 		s_printf(txt_buf, "#C7EA46 %d GiB#", size >> 10);
 
@@ -453,18 +453,18 @@ static void _create_mbox_emummc_file_based()
 		lv_slider_set_style(slider, LV_SLIDER_STYLE_INDIC, &bar_ind);
 		lv_slider_set_style(slider, LV_SLIDER_STYLE_KNOB,  &bar_btn);
 		lv_slider_set_action(slider, _action_slider_emummc_file);
-		lv_obj_align(slider, slider_cont, LV_ALIGN_CENTER, -(LV_DPI / 2), 0);
+		lv_obj_align(slider, slider_cont, LV_ALIGN_CENTER, 0, 0);
 
 		lv_obj_t *label = lv_label_create(slider_cont, NULL);
 		lv_label_set_recolor(label, true);
 
 		char size_buf[0x20];
 		if (slider_ctx.emu_size == value_full)
-			s_printf(size_buf, "#C7EA46 %d COMPLETO#", slider_ctx.emu_size >> 10);
+			s_printf(size_buf, "#C7EA46 %d GiB - COMPLETO#", slider_ctx.emu_size >> 10);
 		else
 			s_printf(size_buf, "#C7EA46 %d GiB#", slider_ctx.emu_size >> 10);
 		lv_label_set_text(label, size_buf);
-		lv_obj_align(label, slider, LV_ALIGN_OUT_RIGHT_MID, LV_DPI * 2 / 5, 0);
+		lv_obj_align(label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, LV_DPI / 10);
 		slider_ctx.label = label;
 	}
 
