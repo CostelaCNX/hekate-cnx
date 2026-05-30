@@ -29,6 +29,7 @@
 #include "../hos/hos.h"
 #include <libs/fatfs/diskio.h>
 #include <libs/fatfs/ff.h>
+#include <storage/emummc_file_based.h>
 
 #define OUT_FILENAME_SZ      128
 #define NUM_SECTORS_PER_ITER 8192 // 4MB Cache.
@@ -501,6 +502,127 @@ out:
 	free(txt_buf);
 	free(gui->base_path);
 	sd_unmount();
+}
+
+static int _emummc_resize_user(emmc_tool_gui_t *gui, u32 user_offset, u32 resized_cnt, const char *file_based_path)
+{
+	sd_mount();
+
+	s_printf(gui->txt_buf, "Formatando USER... ");
+	lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
+	manual_system_maintenance(true);
+
+	u32 user_sectors = resized_cnt - user_offset - 33;
+	user_sectors = ALIGN_DOWN(user_sectors, 0x20);
+	disk_set_info(DRIVE_EMU, SET_SECTOR_COUNT, &user_sectors);
+
+	emmc_part_t user_part = {0};
+	user_part.lba_start = user_offset;
+	user_part.lba_end   = user_offset + user_sectors - 1;
+	strcpy(user_part.name, "USER");
+
+	nx_emmc_bis_init_file_based(&user_part, true, file_based_path);
+
+	u8 *buf = malloc(SZ_4M);
+	int res = f_mkfs("emu:", FM_FAT32 | FM_SFD | FM_PRF2, 16384, buf, SZ_4M);
+	free(buf);
+
+	nx_emmc_bis_end();
+	hos_bis_keys_clear();
+
+	if (res != FR_OK)
+	{
+		s_printf(gui->txt_buf, "#FF0000 Falhou (%d)!#\nTente novamente...\n", res);
+		lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
+		return res;
+	}
+
+	s_printf(gui->txt_buf, "Concluído!\nGravando nova GPT... ");
+	lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
+	manual_system_maintenance(true);
+
+	// Protective MBR pointing at GPT.
+	mbr_t mbr = {0};
+	mbr.boot_signature       = 0xAA55;
+	mbr.partitions[0].type   = 0xEE;
+	mbr.partitions[0].start_sct = 1;
+	mbr.partitions[0].start_sct_chs.sector   = 0x02;
+	mbr.partitions[0].end_sct_chs.sector     = 0xFF;
+	mbr.partitions[0].end_sct_chs.cylinder   = 0xFF;
+	mbr.partitions[0].end_sct_chs.head       = 0xFF;
+	mbr.partitions[0].size_sct = 0xFFFFFFFF;
+
+	gpt_t          *gpt = zalloc(sizeof(*gpt));
+	gpt_header_t    gpt_hdr_backup = {0};
+
+	// Read current GPT via the file-based storage layer.
+	emummc_storage_file_based_init(file_based_path);
+
+	res = 1;
+	res &= sdmmc_storage_read(&emmc_storage, 1,                       sizeof(*gpt) / 0x200, gpt);
+	res &= sdmmc_storage_read(&emmc_storage, gpt->header.alt_lba, 1, &gpt_hdr_backup);
+
+	if (!res)
+	{
+		s_printf(gui->txt_buf, "\n#FF0000 Falha ao ler GPT original!#\nTente novamente...\n");
+		lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
+		free(gpt);
+		emummc_storage_file_based_end();
+		return FR_DISK_ERR;
+	}
+
+	// Find USER entry index.
+	u32 user_idx = 0;
+	for (; user_idx < gpt->header.num_part_ents; user_idx++)
+		if (!memcmp(gpt->entries[user_idx].name, (char[]) { 'U', 0, 'S', 0, 'E', 0, 'R', 0 }, 8))
+			break;
+
+	if (user_idx >= gpt->header.num_part_ents)
+	{
+		s_printf(gui->txt_buf, "\n#FF0000 Partição USER não encontrada!#\nTente novamente...\n");
+		lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
+		free(gpt);
+		emummc_storage_file_based_end();
+		return FR_DISK_ERR;
+	}
+
+	// Truncate entries after USER and update limits.
+	memset(&gpt->entries[user_idx + 1], 0, sizeof(gpt->entries[0]) * (128 - (user_idx + 1)));
+
+	gpt->entries[user_idx].lba_end       = user_part.lba_end;
+	gpt->header.num_part_ents            = user_idx + 1;
+	gpt->header.alt_lba                  = resized_cnt - 1;
+	gpt->header.last_use_lba             = resized_cnt - 34;
+	gpt->header.part_ents_crc32          = crc32_calc(0, (const u8 *)gpt->entries, sizeof(gpt_entry_t) * gpt->header.num_part_ents);
+	gpt->header.crc32 = 0;
+	gpt->header.crc32                    = crc32_calc(0, (const u8 *)&gpt->header, gpt->header.size);
+
+	gpt_hdr_backup.my_lba                = resized_cnt - 1;
+	gpt_hdr_backup.part_ent_lba          = resized_cnt - 33;
+	gpt_hdr_backup.last_use_lba          = gpt->header.last_use_lba;
+	gpt_hdr_backup.part_ents_crc32       = gpt->header.part_ents_crc32;
+	gpt_hdr_backup.crc32 = 0;
+	gpt_hdr_backup.crc32                 = crc32_calc(0, (const u8 *)&gpt_hdr_backup, gpt_hdr_backup.size);
+
+	// Write updated MBR, main GPT, backup GPT entries and backup header.
+	res = 1;
+	res &= emummc_storage_file_based_write(0,                              1,                                          &mbr);
+	res &= emummc_storage_file_based_write(gpt->header.my_lba,            sizeof(gpt_t)          >> 9,               gpt);
+	res &= emummc_storage_file_based_write(gpt_hdr_backup.part_ent_lba,   (sizeof(gpt_entry_t) * 128) >> 9,          gpt->entries);
+	res &= emummc_storage_file_based_write(gpt_hdr_backup.my_lba,         1,                                          &gpt_hdr_backup);
+
+	free(gpt);
+	emummc_storage_file_based_end();
+
+	if (!res)
+	{
+		s_printf(gui->txt_buf, "\n#FF0000 Falha ao gravar GPT!#\nTente novamente...\n");
+		lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, gui->txt_buf);
+		return FR_DISK_ERR;
+	}
+
+	lv_label_ins_text(gui->label_log, LV_LABEL_POS_LAST, "Concluído!\n");
+	return FR_OK;
 }
 
 static int _dump_emummc_raw_part(emmc_tool_gui_t *gui, int active_part, int part_idx, u32 sd_part_off, emmc_part_t *part, u32 resized_count)
