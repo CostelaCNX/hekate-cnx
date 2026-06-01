@@ -35,6 +35,36 @@
 #include "frontend/fe_tools.h"
 #include "frontend/fe_info.h"
 
+
+static void _apply_system_setting(const char *value)
+{
+	char src[128];
+	strcpy(src, "atmosphere/config/");
+	strcat(src, value);
+	strcat(src, "_system_settings.ini");
+
+	FIL src_fp;
+	if (f_open(&src_fp, src, FA_READ) != FR_OK)
+		return;
+
+	f_mkdir("atmosphere/config");
+
+	FIL dst_fp;
+	if (f_open(&dst_fp, "atmosphere/config/system_settings.ini", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+	{
+		f_close(&src_fp);
+		return;
+	}
+
+	u8 buf[512];
+	u32 br;
+	while (f_read(&src_fp, buf, sizeof(buf), &br) == FR_OK && br)
+		f_write(&dst_fp, buf, br, NULL);
+
+	f_close(&src_fp);
+	f_close(&dst_fp);
+}
+
 hekate_config h_cfg;
 boot_cfg_t __attribute__((section ("._boot_cfg"))) b_cfg;
 const volatile ipl_ver_meta_t __attribute__((section ("._ipl_version"))) ipl_ver = {
@@ -151,7 +181,7 @@ bool is_ipl_updated(void *buf, u32 size, const char *path, bool force)
 	return true;
 }
 
-static void _launch_payload(char *path, bool update, bool clear_screen)
+void _launch_payload(char *path, bool update, bool clear_screen)
 {
 	if (clear_screen)
 		gfx_clear_grey(0x1B);
@@ -366,6 +396,8 @@ static void _launch_ini_list()
 					h_cfg.emummc_force_disable = atoi(kv->val);
 				else if (!strcmp("emupath", kv->key))
 					emummc_path = kv->val;
+				else if (!strcmp("system_settings", kv->key))
+					_apply_system_setting(kv->val);
 			}
 
 			if (emummc_path && !emummc_set_path(emummc_path))
@@ -511,6 +543,8 @@ static void _launch_config()
 				h_cfg.emummc_force_disable = atoi(kv->val);
 			if (!strcmp("emupath", kv->key))
 				emummc_path = kv->val;
+			if (!strcmp("system_settings", kv->key))
+				_apply_system_setting(kv->val);
 		}
 
 		if (emummc_path && !emummc_set_path(emummc_path))
@@ -819,6 +853,8 @@ static void _auto_launch()
 						h_cfg.emummc_force_disable = atoi(kv->val);
 					else if (!strcmp("bootwait", kv->key))
 						boot_wait = atoi(kv->val);
+					else if (!strcmp("system_settings", kv->key))
+						_apply_system_setting(kv->val);
 				}
 			}
 			if (cfg_sec)
@@ -866,6 +902,8 @@ static void _auto_launch()
 						h_cfg.emummc_force_disable = atoi(kv->val);
 					else if (!strcmp("bootwait", kv->key))
 						boot_wait = atoi(kv->val);
+					else if (!strcmp("system_settings", kv->key))
+						_apply_system_setting(kv->val);
 				}
 			}
 			if (cfg_sec)
