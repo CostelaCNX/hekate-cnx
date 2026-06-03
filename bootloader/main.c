@@ -35,6 +35,68 @@
 #include "frontend/fe_tools.h"
 #include "frontend/fe_info.h"
 
+// Directories swapped between root and SD2/ when activating a secondary environment.
+static const char *_sdroot_swap_dirs[] = { "atmosphere", "switch", NULL };
+#define SDROOT_MARKER "bootloader/sdroot.txt"
+
+static void _sdroot_restore()
+{
+	FILINFO fi;
+	if (f_stat(SDROOT_MARKER, &fi) != FR_OK)
+		return; // No secondary environment was active.
+
+	FIL fp;
+	char path[64] = {0};
+	u32 br;
+	if (f_open(&fp, SDROOT_MARKER, FA_READ) != FR_OK)
+		return;
+	f_read(&fp, path, sizeof(path) - 1, &br);
+	f_close(&fp);
+
+	if (!br)
+		return;
+
+	// Swap each directory back: root/<dir> → <path>/<dir>, <path>/_<dir> → root/<dir>.
+	for (u32 i = 0; _sdroot_swap_dirs[i]; i++)
+	{
+		char sd2_dir[80], sd2_stored[80];
+		strcpy(sd2_dir,    path); strcat(sd2_dir,    "/");  strcat(sd2_dir,    _sdroot_swap_dirs[i]);
+		strcpy(sd2_stored, path); strcat(sd2_stored, "/_"); strcat(sd2_stored, _sdroot_swap_dirs[i]);
+
+		if (f_stat(sd2_stored, &fi) != FR_OK)
+			continue; // Backup not found (partial swap or dir didn't exist) — skip.
+
+		f_rename(_sdroot_swap_dirs[i], sd2_dir);    // e.g. atmosphere → SD2/atmosphere
+		f_rename(sd2_stored, _sdroot_swap_dirs[i]); // e.g. SD2/_atmosphere → atmosphere
+	}
+
+	f_unlink(SDROOT_MARKER);
+}
+
+static void _sdroot_activate(const char *path)
+{
+	// Write marker first so restore can recover from an interrupted swap.
+	FIL fp;
+	if (f_open(&fp, SDROOT_MARKER, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
+	{
+		f_write(&fp, path, strlen(path), NULL);
+		f_close(&fp);
+	}
+
+	FILINFO fi;
+	for (u32 i = 0; _sdroot_swap_dirs[i]; i++)
+	{
+		char sd2_dir[80], sd2_stored[80];
+		strcpy(sd2_dir,    path); strcat(sd2_dir,    "/");  strcat(sd2_dir,    _sdroot_swap_dirs[i]);
+		strcpy(sd2_stored, path); strcat(sd2_stored, "/_"); strcat(sd2_stored, _sdroot_swap_dirs[i]);
+
+		if (f_stat(sd2_dir, &fi) != FR_OK)
+			continue; // SD2 doesn't have this directory — skip.
+
+		f_rename(_sdroot_swap_dirs[i], sd2_stored); // e.g. atmosphere → SD2/_atmosphere
+		f_rename(sd2_dir, _sdroot_swap_dirs[i]);    // e.g. SD2/atmosphere → atmosphere
+	}
+}
 
 static void _apply_system_setting(const char *value)
 {
@@ -398,6 +460,8 @@ static void _launch_ini_list()
 					emummc_path = kv->val;
 				else if (!strcmp("system_settings", kv->key))
 					_apply_system_setting(kv->val);
+				else if (!strcmp("sdroot", kv->key))
+					_sdroot_activate(kv->val);
 			}
 
 			if (emummc_path && !emummc_set_path(emummc_path))
@@ -545,6 +609,8 @@ static void _launch_config()
 				emummc_path = kv->val;
 			if (!strcmp("system_settings", kv->key))
 				_apply_system_setting(kv->val);
+			if (!strcmp("sdroot", kv->key))
+				_sdroot_activate(kv->val);
 		}
 
 		if (emummc_path && !emummc_set_path(emummc_path))
@@ -785,6 +851,9 @@ static void _auto_launch()
 	// Load emuMMC configuration.
 	emummc_load_cfg();
 
+	// Restore main environment if a secondary SD root was active on the previous boot.
+	_sdroot_restore();
+
 	// Parse hekate main configuration.
 	if (ini_parse(&ini_sections, "bootloader/hekate_ipl.ini", false))
 		goto out; // Can't load hekate_ipl.ini.
@@ -855,6 +924,8 @@ static void _auto_launch()
 						boot_wait = atoi(kv->val);
 					else if (!strcmp("system_settings", kv->key))
 						_apply_system_setting(kv->val);
+					else if (!strcmp("sdroot", kv->key))
+						_sdroot_activate(kv->val);
 				}
 			}
 			if (cfg_sec)
@@ -904,6 +975,8 @@ static void _auto_launch()
 						boot_wait = atoi(kv->val);
 					else if (!strcmp("system_settings", kv->key))
 						_apply_system_setting(kv->val);
+					else if (!strcmp("sdroot", kv->key))
+						_sdroot_activate(kv->val);
 				}
 			}
 			if (cfg_sec)
