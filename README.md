@@ -12,6 +12,7 @@ Custom Graphical Nintendo Switch bootloader, firmware patcher, tools, and many m
 - [Bootloader configuration](#bootloader-configuration)
   * [hekate global Configuration keys/values](#hekate-global-configuration-keysvalues-when-entry-is-config)
   * [Boot entry key/value combinations](#boot-entry-keyvalue-combinations)
+  * [Custom boot entry keys](#custom-boot-entry-keys)
   * [Boot entry key/value combinations for Exosphère](#boot-entry-keyvalue-combinations-for-exosphère)
   * [Payload storage](#payload-storage)
   * [Nyx Configuration keys/values](#nyx-configuration-keysvalues-nyxini)
@@ -135,6 +136,14 @@ A boot entry needs to be manually added/edited with the user's chosen key/value 
 | logopath={FILE path}   | If it exists, it will load the specified bitmap. Otherwise `bootloader/bootlogo.bmp` will be used if exists |
 | icon={FILE path}       | Force Nyx to use the icon defined here. If this is not found, it will check for a bmp named as the boot entry ([Test 2] -> `bootloader/res/Test 2.bmp`). Otherwise defaults will be used. |
 
+
+### Custom boot entry keys
+
+| Config option             | Description                                                |
+| ------------------------- | ---------------------------------------------------------- |
+| sdroot={FOLDER path}      | Swaps `atmosphere/` and `switch/` at the SD root with those inside the specified folder before booting (e.g. `sdroot=SD2`). Enables a fully separate Atmosphere/HOS environment on the same SD card. The swap is automatically reversed on the next boot. The folder name is free (`SD2`, `SD3`, `old_fw`, etc). No limit on number of environments. Use `emupath` to point to the secondary emunand. |
+| system_settings={name}    | Copies `atmosphere/config/<name>_system_settings.ini` over `atmosphere/config/system_settings.ini` before boot. Allows switching Atmosphere config presets automatically (e.g. `system_settings=cfw` copies `cfw_system_settings.ini`). Source presets are never modified. Silently ignored if the source file does not exist. |
+| ofw=1                     | Reboots to stock firmware (OFW) before launching HOS, equivalent to "Reboot to OFW" in Nyx. On Erista (T210) units with AutoRCM enabled the key is silently ignored and boot proceeds normally to avoid the yellow screen. |
 
 **Note1**: When using the wildcard (`/*`) with `kip1` you can still use the normal `kip1` after that to load extra single kips.
 
