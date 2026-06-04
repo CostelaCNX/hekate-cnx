@@ -22,6 +22,8 @@
 #include "hos.h"
 #include "hos_config.h"
 #include "pkg3.h"
+#include "../config.h"
+#include "../frontend/fe_tools.h"
 #include <libs/fatfs/ff.h>
 
 //#define DPRINTF(...) gfx_printf(__VA_ARGS__)
@@ -301,6 +303,23 @@ static int _config_ucid(launch_ctxt_t *ctxt, const char *value)
 	return 0;
 }
 
+static int _config_ofw(launch_ctxt_t *ctxt, const char *value)
+{
+	if (*value != '1')
+		return 0;
+
+	// On Erista (T210) with AutoRCM active, OFW boot causes a yellow screen.
+	// Skip silently and let the entry boot normally.
+	if (!h_cfg.t210b01 && tools_autorcm_enabled())
+		return 0;
+
+	power_set_state(REBOOT_BYPASS_FUSES);
+	while (true)
+		bpmp_halt();
+
+	return 0;
+}
+
 typedef struct _cfg_handler_t
 {
 	const char *key;
@@ -331,6 +350,7 @@ static const cfg_handler_t _config_handlers[] = {
 	{ "cal0blank",        _config_exo_cal0_blanking },
 	{ "cal0writesys",     _config_exo_cal0_writes_enable },
 	{ "ucid",             _config_ucid },
+	{ "ofw",              _config_ofw },
 	{ NULL, NULL },
 };
 
