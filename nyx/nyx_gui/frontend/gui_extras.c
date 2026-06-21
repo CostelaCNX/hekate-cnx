@@ -24,6 +24,7 @@
 
 #include "gui.h"
 #include "gui_extras.h"
+#include "gui_tools_files.h"
 #include <libs/fatfs/ff.h>
 
 // ---------------------------------------------------------------------------
@@ -321,11 +322,14 @@ static lv_obj_t *_make_col(lv_obj_t *parent, u32 col_w)
 	return h;
 }
 
-static lv_obj_t *_section_header(lv_obj_t *parent, u32 col_w, const char *title)
+static lv_obj_t *_section_header(lv_obj_t *parent, u32 col_w, const char *title, lv_obj_t *anchor)
 {
 	lv_obj_t *lbl = lv_label_create(parent, NULL);
 	lv_label_set_static_text(lbl, title);
-	lv_obj_set_pos(lbl, 0, 0);
+	if (anchor)
+		lv_obj_align(lbl, anchor, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 2);
+	else
+		lv_obj_set_pos(lbl, 0, 0);
 
 	static lv_style_t line_style;
 	lv_style_copy(&line_style, lv_theme_get_current()->line.decor);
@@ -364,7 +368,7 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 
 	// === Left column ===
 	lv_obj_t *h_left = _make_col(parent, col_w);
-	lv_obj_t *anchor = _section_header(h_left, col_w, "Módulos do Sistema");
+	lv_obj_t *anchor = _section_header(h_left, col_w, "Módulos do Sistema", NULL);
 
 	for (u32 i = 0; i < SYSMOD_COUNT; i++)
 	{
@@ -407,7 +411,7 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 
 	// === Right column ===
 	lv_obj_t *h_right = _make_col(parent, col_w);
-	lv_obj_t *anchor2 = _section_header(h_right, col_w, "Temas Customizados");
+	lv_obj_t *anchor2 = _section_header(h_right, col_w, "Temas Customizados", NULL);
 
 	lv_obj_t *btn_themes = lv_btn_create(h_right, NULL);
 	lv_btn_set_action(btn_themes, LV_BTN_ACTION_CLICK, _action_remove_themes);
@@ -416,6 +420,17 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 
 	lv_obj_t *lbl_themes = lv_label_create(btn_themes, NULL);
 	lv_label_set_static_text(lbl_themes, "Remover Temas");
+
+	// Files (SD file browser) - header anchored below the themes button.
+	lv_obj_t *anchor3 = _section_header(h_right, col_w, "Arquivos", btn_themes);
+
+	lv_obj_t *btn_files = lv_btn_create(h_right, NULL);
+	lv_btn_set_action(btn_files, LV_BTN_ACTION_CLICK, create_win_files);
+	lv_obj_set_width(btn_files, btn_w);
+	lv_obj_align(btn_files, anchor3, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 5);
+
+	lv_obj_t *lbl_files = lv_label_create(btn_files, NULL);
+	lv_label_set_static_text(lbl_files, SYMBOL_SD"  Gerenciador de Arquivos");
 
 	// Lock positions after PRETTY has stabilized, then snap h_right top to h_left top.
 	lv_obj_set_protect(h_left,  LV_PROTECT_POS);
