@@ -48,11 +48,32 @@ static bool _sdroot_excluded(const char *name)
 {
 	// Shared across environments: hekate install (bootloader), the emuMMC
 	// (selected via emupath), the hekate payload, and bootdat/boot.ini loaders.
-	static const char *ex[] = { "bootloader", "emuMMC", "payload.bin", "boot.ini", "boot.dat", NULL };
-	for (u32 i = 0; ex[i]; i++)
-		if (!strcmp(name, ex[i]))
+	static const char ex[] = "bootloader\0emuMMC\0payload.bin\0boot.ini\0boot.dat";
+	for (const char *e = ex; *e; e += strlen(e) + 1)
+		if (!strcmp(name, e))
 			return true;
 	return false;
+}
+
+// Swap one item between root and <path>. restore=false moves the secondary copy
+// into root (backing up the main one); restore=true reverses it.
+static void _sdroot_swap(const char *path, const char *name, bool restore)
+{
+	char item[200], bak[200];
+	strcpy(item, path); strcat(item, "/");  strcat(item, name);
+	strcpy(bak,  path); strcat(bak,  "/_"); strcat(bak,  name);
+
+	FILINFO fi;
+	if (restore)
+	{
+		f_rename(name, item);                          // secondary back into <path>/<name>
+		if (f_stat(bak, &fi) == FR_OK) f_rename(bak, name); // main back into root
+	}
+	else
+	{
+		if (f_stat(name, &fi) == FR_OK) f_rename(name, bak); // back up main into <path>/_<name>
+		f_rename(item, name);                          // activate secondary in root
+	}
 }
 
 static void _sdroot_restore()
@@ -73,34 +94,27 @@ static void _sdroot_restore()
 		f_close(&fp);
 	}
 	buf[br] = 0;
-	if (!br) { free(buf); f_unlink(SDROOT_MARKER); return; }
 
-	// First line = secondary folder path.
+	// First line = secondary folder path; the rest are the swapped item names.
 	char path[128] = {0};
-	char *nl = strchr(buf, '\n');
-	if (!nl) { free(buf); f_unlink(SDROOT_MARKER); return; }
-	u32 plen = nl - buf;
-	if (plen >= sizeof(path)) plen = sizeof(path) - 1;
-	memcpy(path, buf, plen);
-
-	// Each following line = one swapped item. Reverse the swap.
-	char *p = nl + 1;
-	while (*p)
+	char *nl = br ? strchr(buf, '\n') : NULL;
+	if (nl)
 	{
-		char *e = strchr(p, '\n');
-		if (e) *e = 0;
-		if (*p)
-		{
-			char sd2_item[200], sd2_bak[200];
-			strcpy(sd2_item, path); strcat(sd2_item, "/");  strcat(sd2_item, p);
-			strcpy(sd2_bak,  path); strcat(sd2_bak,  "/_"); strcat(sd2_bak,  p);
+		u32 plen = nl - buf;
+		if (plen >= sizeof(path)) plen = sizeof(path) - 1;
+		memcpy(path, buf, plen);
 
-			f_rename(p, sd2_item);                 // secondary back into SD2/<name>
-			if (f_stat(sd2_bak, &fi) == FR_OK)
-				f_rename(sd2_bak, p);              // main back into root (if it had one)
+		// Each following line = one swapped item. Reverse the swap.
+		char *p = nl + 1;
+		while (*p)
+		{
+			char *e = strchr(p, '\n');
+			if (e) *e = 0;
+			if (*p)
+				_sdroot_swap(path, p, true);
+			if (!e) break;
+			p = e + 1;
 		}
-		if (!e) break;
-		p = e + 1;
 	}
 
 	free(buf);
@@ -118,8 +132,9 @@ static void _sdroot_activate(const char *path)
 	char *list = malloc(SDROOT_BUF_SZ);
 	if (!list) { f_closedir(&dir); return; }
 	strcpy(list, path);
-	strcat(list, "\n");
 	u32 len = strlen(list);
+	list[len++] = '\n';
+	list[len] = 0;
 
 	while (f_readdir(&dir, &fi) == FR_OK && fi.fname[0])
 	{
@@ -150,15 +165,7 @@ static void _sdroot_activate(const char *path)
 		char *e = strchr(p, '\n');
 		if (e) *e = 0;
 		if (*p)
-		{
-			char sd2_item[200], sd2_bak[200];
-			strcpy(sd2_item, path); strcat(sd2_item, "/");  strcat(sd2_item, p);
-			strcpy(sd2_bak,  path); strcat(sd2_bak,  "/_"); strcat(sd2_bak,  p);
-
-			if (f_stat(p, &fi) == FR_OK)
-				f_rename(p, sd2_bak);  // back up the main copy into SD2/_<name>
-			f_rename(sd2_item, p);     // activate the secondary copy
-		}
+			_sdroot_swap(path, p, false);
 		if (!e) break;
 		p = e + 1;
 	}
@@ -168,19 +175,24 @@ static void _sdroot_activate(const char *path)
 
 static void _apply_system_setting(const char *value)
 {
+	// dst = atmosphere/config/system_settings.ini (index 17 is the '/' after config).
+	char dst[128];
+	strcpy(dst, "atmosphere/config/system_settings.ini");
+
+	// src = atmosphere/config/<value>_system_settings.ini (reuses the dst prefix).
 	char src[128];
-	strcpy(src, "atmosphere/config/");
-	strcat(src, value);
+	memcpy(src, dst, 18);
+	strcpy(src + 18, value);
 	strcat(src, "_system_settings.ini");
 
 	FIL src_fp;
 	if (f_open(&src_fp, src, FA_READ) != FR_OK)
 		return;
 
-	f_mkdir("atmosphere/config");
+	dst[17] = 0; f_mkdir(dst); dst[17] = '/'; // ensure atmosphere/config exists
 
 	FIL dst_fp;
-	if (f_open(&dst_fp, "atmosphere/config/system_settings.ini", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+	if (f_open(&dst_fp, dst, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 	{
 		f_close(&src_fp);
 		return;

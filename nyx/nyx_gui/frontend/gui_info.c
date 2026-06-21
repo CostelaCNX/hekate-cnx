@@ -2662,7 +2662,7 @@ static lv_res_t _create_window_sdcard_info_status(lv_obj_t *btn)
 		"Classe velocidade:\n"
 		"Classes UHS:\n"
 		"Proteção escrita:\n"
-		"Info do vendedor:"
+		"Info de vendor:"
 	);
 	lv_obj_set_width(lb_desc2, lv_obj_get_width(desc2));
 	lv_obj_align(desc2, val, LV_ALIGN_OUT_RIGHT_MID, LV_DPI / 5 * 3, 0);
