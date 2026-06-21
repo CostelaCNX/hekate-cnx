@@ -35,9 +35,25 @@
 #include "frontend/fe_tools.h"
 #include "frontend/fe_info.h"
 
-// Directories swapped between root and SD2/ when activating a secondary environment.
-static const char *_sdroot_swap_dirs[] = { "atmosphere", "switch", NULL };
+// Secondary SD environment (sdroot=<folder>): swaps every item found inside
+// <folder>/ with its counterpart in the SD root, except the items below.
+// The hekate install (bootloader) and the emuMMC (selected via emupath) are
+// never swapped. The marker stores the folder plus the exact list of swapped
+// items so the next boot can revert precisely, even items that only exist in
+// the secondary environment.
 #define SDROOT_MARKER "bootloader/sdroot.txt"
+#define SDROOT_BUF_SZ 0x1000
+
+static bool _sdroot_excluded(const char *name)
+{
+	// Shared across environments: hekate install (bootloader), the emuMMC
+	// (selected via emupath), the hekate payload, and bootdat/boot.ini loaders.
+	static const char *ex[] = { "bootloader", "emuMMC", "payload.bin", "boot.ini", "boot.dat", NULL };
+	for (u32 i = 0; ex[i]; i++)
+		if (!strcmp(name, ex[i]))
+			return true;
+	return false;
+}
 
 static void _sdroot_restore()
 {
@@ -45,57 +61,109 @@ static void _sdroot_restore()
 	if (f_stat(SDROOT_MARKER, &fi) != FR_OK)
 		return; // No secondary environment was active.
 
+	char *buf = malloc(SDROOT_BUF_SZ);
+	if (!buf)
+		return;
+
 	FIL fp;
-	char path[64] = {0};
-	u32 br;
-	if (f_open(&fp, SDROOT_MARKER, FA_READ) != FR_OK)
-		return;
-	f_read(&fp, path, sizeof(path) - 1, &br);
-	f_close(&fp);
-
-	if (!br)
-		return;
-
-	// Swap each directory back: root/<dir> → <path>/<dir>, <path>/_<dir> → root/<dir>.
-	for (u32 i = 0; _sdroot_swap_dirs[i]; i++)
+	u32 br = 0;
+	if (f_open(&fp, SDROOT_MARKER, FA_READ) == FR_OK)
 	{
-		char sd2_dir[80], sd2_stored[80];
-		strcpy(sd2_dir,    path); strcat(sd2_dir,    "/");  strcat(sd2_dir,    _sdroot_swap_dirs[i]);
-		strcpy(sd2_stored, path); strcat(sd2_stored, "/_"); strcat(sd2_stored, _sdroot_swap_dirs[i]);
+		f_read(&fp, buf, SDROOT_BUF_SZ - 1, &br);
+		f_close(&fp);
+	}
+	buf[br] = 0;
+	if (!br) { free(buf); f_unlink(SDROOT_MARKER); return; }
 
-		if (f_stat(sd2_stored, &fi) != FR_OK)
-			continue; // Backup not found (partial swap or dir didn't exist) — skip.
+	// First line = secondary folder path.
+	char path[128] = {0};
+	char *nl = strchr(buf, '\n');
+	if (!nl) { free(buf); f_unlink(SDROOT_MARKER); return; }
+	u32 plen = nl - buf;
+	if (plen >= sizeof(path)) plen = sizeof(path) - 1;
+	memcpy(path, buf, plen);
 
-		f_rename(_sdroot_swap_dirs[i], sd2_dir);    // e.g. atmosphere → SD2/atmosphere
-		f_rename(sd2_stored, _sdroot_swap_dirs[i]); // e.g. SD2/_atmosphere → atmosphere
+	// Each following line = one swapped item. Reverse the swap.
+	char *p = nl + 1;
+	while (*p)
+	{
+		char *e = strchr(p, '\n');
+		if (e) *e = 0;
+		if (*p)
+		{
+			char sd2_item[200], sd2_bak[200];
+			strcpy(sd2_item, path); strcat(sd2_item, "/");  strcat(sd2_item, p);
+			strcpy(sd2_bak,  path); strcat(sd2_bak,  "/_"); strcat(sd2_bak,  p);
+
+			f_rename(p, sd2_item);                 // secondary back into SD2/<name>
+			if (f_stat(sd2_bak, &fi) == FR_OK)
+				f_rename(sd2_bak, p);              // main back into root (if it had one)
+		}
+		if (!e) break;
+		p = e + 1;
 	}
 
+	free(buf);
 	f_unlink(SDROOT_MARKER);
 }
 
 static void _sdroot_activate(const char *path)
 {
-	// Write marker first so restore can recover from an interrupted swap.
+	FILINFO fi;
+	DIR dir;
+	if (f_opendir(&dir, path) != FR_OK)
+		return; // Secondary folder not present.
+
+	// Collect item names first; renaming while iterating the dir is unsafe.
+	char *list = malloc(SDROOT_BUF_SZ);
+	if (!list) { f_closedir(&dir); return; }
+	strcpy(list, path);
+	strcat(list, "\n");
+	u32 len = strlen(list);
+
+	while (f_readdir(&dir, &fi) == FR_OK && fi.fname[0])
+	{
+		const char *n = fi.fname;
+		if (n[0] == '_')          continue; // leftover backup from an interrupted swap
+		if (_sdroot_excluded(n))  continue; // bootloader / emuMMC are shared
+
+		u32 nl = strlen(n);
+		if (len + nl + 2 >= SDROOT_BUF_SZ) break; // marker buffer guard
+		strcpy(list + len, n); len += nl;
+		list[len++] = '\n'; list[len] = 0;
+	}
+	f_closedir(&dir);
+
+	// Write the marker (folder + item list) BEFORE swapping, for recovery.
 	FIL fp;
 	if (f_open(&fp, SDROOT_MARKER, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
 	{
-		f_write(&fp, path, strlen(path), NULL);
+		f_write(&fp, list, strlen(list), NULL);
 		f_close(&fp);
 	}
 
-	FILINFO fi;
-	for (u32 i = 0; _sdroot_swap_dirs[i]; i++)
+	// Swap each listed item: root/<name> -> <path>/_<name>; <path>/<name> -> root/<name>.
+	char *p = strchr(list, '\n');
+	if (p) p++;
+	while (p && *p)
 	{
-		char sd2_dir[80], sd2_stored[80];
-		strcpy(sd2_dir,    path); strcat(sd2_dir,    "/");  strcat(sd2_dir,    _sdroot_swap_dirs[i]);
-		strcpy(sd2_stored, path); strcat(sd2_stored, "/_"); strcat(sd2_stored, _sdroot_swap_dirs[i]);
+		char *e = strchr(p, '\n');
+		if (e) *e = 0;
+		if (*p)
+		{
+			char sd2_item[200], sd2_bak[200];
+			strcpy(sd2_item, path); strcat(sd2_item, "/");  strcat(sd2_item, p);
+			strcpy(sd2_bak,  path); strcat(sd2_bak,  "/_"); strcat(sd2_bak,  p);
 
-		if (f_stat(sd2_dir, &fi) != FR_OK)
-			continue; // SD2 doesn't have this directory — skip.
-
-		f_rename(_sdroot_swap_dirs[i], sd2_stored); // e.g. atmosphere → SD2/_atmosphere
-		f_rename(sd2_dir, _sdroot_swap_dirs[i]);    // e.g. SD2/atmosphere → atmosphere
+			if (f_stat(p, &fi) == FR_OK)
+				f_rename(p, sd2_bak);  // back up the main copy into SD2/_<name>
+			f_rename(sd2_item, p);     // activate the secondary copy
+		}
+		if (!e) break;
+		p = e + 1;
 	}
+
+	free(list);
 }
 
 static void _apply_system_setting(const char *value)
