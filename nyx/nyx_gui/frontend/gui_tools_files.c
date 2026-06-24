@@ -742,7 +742,7 @@ static lv_res_t _fm_kb_ok_action(lv_obj_t *kb)
 
 	if (!_fm_name_valid(name))
 	{
-		_fm_msg("#FFDD00 Nome invÃ¡lido.#");
+		_fm_msg("#FFDD00 Nome inválido.#");
 		return LV_RES_INV;
 	}
 
@@ -774,7 +774,7 @@ static lv_res_t _fm_kb_ok_action(lv_obj_t *kb)
 		free(path);
 
 		if (res != FR_OK)
-			_fm_msg("#FFDD00 OperaÃ§Ã£o falhou!#");
+			_fm_msg("#FFDD00 Operação falhou!#");
 	}
 	else
 	{
@@ -849,7 +849,7 @@ static lv_res_t _fm_open_action(lv_obj_t *btn)
 		if (_fm_is_text(fm.sel))
 			_fm_view_text();
 		else
-			_fm_msg("#FFDD00 NÃ£o Ã© pasta nem arquivo de texto.#");
+			_fm_msg("#FFDD00 Não é pasta nem arquivo de texto.#");
 
 		return LV_RES_OK;
 	}
@@ -921,7 +921,7 @@ static lv_res_t _fm_paste_action(lv_obj_t *btn)
 {
 	if (!fm.has_clip)
 	{
-		_fm_msg("#FFDD00 Ãrea de transferÃªncia vazia.#");
+		_fm_msg("#FFDD00 Área de transferência vazia.#");
 		return LV_RES_OK;
 	}
 
@@ -934,7 +934,7 @@ static lv_res_t _fm_paste_action(lv_obj_t *btn)
 	{
 		free(src);
 		free(dst);
-		_fm_msg("#FFDD00 Origem e destino sÃ£o iguais.#");
+		_fm_msg("#FFDD00 Origem e destino são iguais.#");
 		return LV_RES_OK;
 	}
 
@@ -943,7 +943,7 @@ static lv_res_t _fm_paste_action(lv_obj_t *btn)
 	{
 		free(src);
 		free(dst);
-		_fm_msg("#FFDD00 NÃ£o dÃ¡ para colar a pasta nela mesma.#");
+		_fm_msg("#FFDD00 Não dá para colar a pasta nela mesma.#");
 		return LV_RES_OK;
 	}
 
@@ -960,7 +960,7 @@ static lv_res_t _fm_paste_action(lv_obj_t *btn)
 	{
 		free(src);
 		free(dst);
-		_fm_msg("#FFDD00 O destino jÃ¡ existe.#");
+		_fm_msg("#FFDD00 O destino já existe.#");
 		return LV_RES_OK;
 	}
 
@@ -984,7 +984,7 @@ static lv_res_t _fm_paste_action(lv_obj_t *btn)
 	free(dst);
 
 	if (res != FR_OK)
-		_fm_msg("#FFDD00 OperaÃ§Ã£o falhou!#");
+		_fm_msg("#FFDD00 Operação falhou!#");
 	else if (fm.clip_cut)
 		fm.has_clip = false;
 
@@ -1050,7 +1050,7 @@ static lv_res_t _fm_delete_action(lv_obj_t *btn)
 	lv_obj_set_width(mbox, LV_HOR_RES / 9 * 5);
 
 	char buf[FM_NAME_SIZE + 96];
-	s_printf(buf, "Apagar #FF8000 %s#%s?\n#FFDD00 Isso nÃ£o pode ser desfeito.#", fm.sel, fm.sel_is_dir ? " e todo o seu conteÃºdo" : "");
+	s_printf(buf, "Apagar #FF8000 %s#%s?\n#FFDD00 Isso não pode ser desfeito.#", fm.sel, fm.sel_is_dir ? " e todo o seu conteúdo" : "");
 	lv_mbox_set_text(mbox, buf);
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, _fm_delete_confirm_action);

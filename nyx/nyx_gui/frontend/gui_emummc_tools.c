@@ -325,18 +325,20 @@ static void _create_mbox_emummc_raw()
 
 // ---- Seleção de tamanho para emuMMC em arquivo ----
 
+// Discrete positions: 1=4GiB, 2=7GiB, 3=11GiB, 4=15GiB, 5=FULL.
+#define EMU_FILE_SLIDE_MIN  1
+#define EMU_FILE_SLIDE_FULL 5
+static const u32 emu_file_fixed_mb[] = { 0, 4*1024, 7*1024, 11*1024, 15*1024 };
+
 static lv_res_t _action_slider_emummc_file(lv_obj_t *slider)
 {
-	u32 slider_val = lv_slider_get_value(slider);
-	u32 size = slider_val << 10; // GiB → MB
+	int slide_val = lv_slider_get_value(slider);
+	u32 size;
 
-	// Snap para tamanho completo se estiver dentro de ±3 GiB
-	if (size >= (slider_ctx.full_size > (3 * 1024) ? slider_ctx.full_size - (3 * 1024) : 0) &&
-	    size <= slider_ctx.full_size + (3 * 1024))
-	{
+	if (slide_val >= EMU_FILE_SLIDE_FULL)
 		size = slider_ctx.full_size;
-		lv_slider_set_value(slider, size >> 10);
-	}
+	else
+		size = emu_file_fixed_mb[slide_val];
 
 	slider_ctx.emu_size = size;
 
@@ -427,9 +429,31 @@ static void _create_mbox_emummc_file_based()
 	lv_obj_align(mbox, NULL, LV_ALIGN_CENTER, 0, 0);
 
 	slider_ctx.full_size = value_full;
-	slider_ctx.emu_size  = (value_full > available) ? available : value_full;
 
+	// Find highest discrete position that fits in available space.
+	int max_slide = 0;
 	if (available)
+	{
+		if (value_full <= available)
+			max_slide = EMU_FILE_SLIDE_FULL;
+		else
+		{
+			for (int i = EMU_FILE_SLIDE_MIN; i < EMU_FILE_SLIDE_FULL; i++)
+			{
+				if (emu_file_fixed_mb[i] <= available)
+					max_slide = i;
+			}
+		}
+	}
+
+	if (max_slide >= EMU_FILE_SLIDE_FULL)
+		slider_ctx.emu_size = value_full;
+	else if (max_slide >= EMU_FILE_SLIDE_MIN)
+		slider_ctx.emu_size = emu_file_fixed_mb[max_slide];
+	else
+		slider_ctx.emu_size = 0;
+
+	if (max_slide >= EMU_FILE_SLIDE_MIN)
 	{
 		lv_coord_t pad = lv_mbox_get_style(mbox, LV_MBOX_STYLE_BG)->body.padding.hor;
 		lv_coord_t w   = lv_obj_get_width(mbox) - 2 * pad - 2 * LV_DPI;
@@ -447,8 +471,8 @@ static void _create_mbox_emummc_file_based()
 
 		lv_obj_t *slider = lv_slider_create(slider_cont, NULL);
 		lv_obj_set_size(slider, w, LV_DPI / 3);
-		lv_slider_set_range(slider, 4, available >> 10);
-		lv_slider_set_value(slider, slider_ctx.emu_size >> 10);
+		lv_slider_set_range(slider, EMU_FILE_SLIDE_MIN, max_slide);
+		lv_slider_set_value(slider, max_slide);
 		lv_slider_set_style(slider, LV_SLIDER_STYLE_BG,    &bar_bg);
 		lv_slider_set_style(slider, LV_SLIDER_STYLE_INDIC, &bar_ind);
 		lv_slider_set_style(slider, LV_SLIDER_STYLE_KNOB,  &bar_btn);
@@ -468,7 +492,7 @@ static void _create_mbox_emummc_file_based()
 		slider_ctx.label = label;
 	}
 
-	if (available)
+	if (max_slide >= EMU_FILE_SLIDE_MIN)
 		lv_mbox_add_btns(mbox, mbox_btns, _create_emummc_file_based_action);
 	else
 		lv_mbox_add_btns(mbox, mbox_btns_ok, _create_emummc_file_based_action);
