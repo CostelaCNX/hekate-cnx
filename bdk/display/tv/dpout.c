@@ -1,5 +1,8 @@
 /*
  * dpout.c - the DisplayPort output to the dock (see dpout.h).
+ *
+ * From HWTest-RCM by Creased (Baptiste MOINE), as ported by Hekate Nova Pro
+ * (Retrogendude).
  */
 #include <bdk.h>
 #include <string.h>
@@ -365,13 +368,14 @@ int dpout_probe_sink(dpout_sink_t *s)
         s_printf(s->why, "the SOR partition did not power up");
         return 1;
     }
+    for (u32 i = 0; i < 50 && !dpout_hpd(); i++)
+        msleep(10);
     s->hpd = dpout_hpd();
     if (!s->hpd) {
         s_printf(s->why, "DPAUX1 does not see HPD: no DisplayPort sink on the dock, or the lanes are not routed to it");
         return 2;
     }
     r = dpout_dpcd_read(0x000, s->dpcd, 16);
-    s->aux_stat = s_last_stat;
     if (r) {
         s_printf(s->why, "the sink does not answer the AUX channel (%s, AUXSTAT %08X)",
                  dpout_aux_error(r), s_last_stat);
@@ -562,8 +566,7 @@ int dpout_probe_sink(dpout_sink_t *s)
  * bit and its byte in the drive registers from that pad number (dp_lt.c
  * set_lt_config, sor.c tegra_sor_get_pd_tx_bitmap). coreboot drives SOR0
  * with the crossbar left in bypass, which is a different mapping. */
-static u8 s_xbar[5] = { 2, 1, 0, 3, 4 };    /* dpout_lane_test may exchange [0] and [1] */
-static bool s_pol_invert;                   /* dpout_lane_test: SOR_XBAR_POL on lanes 0-2  */
+static const u8 s_xbar[5] = { 2, 1, 0, 3, 4 };
 /* By pad: its byte in DC/PR/POSTCURSOR, and its PD_TXD power bit. */
 static const u8 s_pad_shift[4] = { 16, 8, 0, 24 };
 static const u8 s_pad_pd[4] = { BIT(2), BIT(1), BIT(0), BIT(3) };
@@ -682,14 +685,6 @@ typedef struct {
 static u8 s_stage;
 static bool s_assr;               /* DPCD 10A was set: cleared again at stop */
 static dpout_link_t s_link;
-static void (*s_log)(const char *);
-
-static void _vlog(dpout_video_t *v, const char *text)
-{
-    s_printf(v->log, "gui: tv: %s\n", text);
-    if (s_log)
-        s_log(v->log);
-}
 
 bool dpout_video_on(void)
 {
@@ -701,29 +696,18 @@ bool dpout_video_on(void)
  * it is the I2C1 pad supply at 2.8 V) and LDO7 "vdd-gen-pll-edp" (1.05 V,
  * normally up from the power-up sequence). One found on is left exactly as
  * it is; one found off is set to 1.05 V and enabled. */
-static void _rails_on(dpout_video_t *v)
+static void _rails_on(void)
 {
-    static const struct { u32 id; u8 cfg; const char *name; } rails[2] = {
-        { REGULATOR_LDO7, MAX77620_REG_LDO7_CFG, "LDO7 vdd-gen-pll-edp" },
-        { REGULATOR_LDO8, MAX77620_REG_LDO8_CFG, "LDO8 vdd-hdmi-dp" },
+    static const struct { u32 id; u8 cfg; } rails[2] = {
+        { REGULATOR_LDO7, MAX77620_REG_LDO7_CFG },
+        { REGULATOR_LDO8, MAX77620_REG_LDO8_CFG },
     };
-    char line[120];
     for (u32 i = 0; i < 2; i++) {
-        u8 was = i2c_recv_byte(I2C_5, MAX77620_I2C_ADDR, rails[i].cfg);
-        u8 now = was;
-        if (!(was >> 6)) {
-            max7762x_regulator_set_voltage(rails[i].id, 1050000);
-            max7762x_regulator_enable(rails[i].id, true);
-            msleep(5);
-            now = i2c_recv_byte(I2C_5, MAX77620_I2C_ADDR, rails[i].cfg);
-        }
-        if (i == 0)
-            v->ldo7_on = (now >> 6) != 0;
-        else
-            v->ldo8_on = (now >> 6) != 0;
-        s_printf(line, "%s: %s at %d mV%s", rails[i].name, (now >> 6) ? "on" : "OFF",
-                 800 + (now & 0x3F) * 50, (was >> 6) ? "" : " (was off, enabled now)");
-        _vlog(v, line);
+        if (i2c_recv_byte(I2C_5, MAX77620_I2C_ADDR, rails[i].cfg) >> 6)
+            continue;
+        max7762x_regulator_set_voltage(rails[i].id, 1050000);
+        max7762x_regulator_enable(rails[i].id, true);
+        msleep(5);
     }
 }
 
@@ -1099,18 +1083,7 @@ static void _sor_xbar(void)
      * whether the register counts channels before or after the crossbar
      * (lanes 0 and 1 sit on pads 2 and 1); channel 2 carries nothing on a
      * two-lane link. */
-    SOR(SOR_XBAR_POL) = s_pol_invert ? 0x07 : 0;
-}
-
-void dpout_lane_test(bool invert, bool swap)
-{
-    s_pol_invert = invert;
-    static const u8 normal[5] = { 2, 1, 0, 3, 4 };
-    memcpy(s_xbar, normal, sizeof(s_xbar));
-    if (swap) {
-        s_xbar[0] = normal[1];
-        s_xbar[1] = normal[0];
-    }
+    SOR(SOR_XBAR_POL) = 0;
 }
 
 /* The termination calibration, as L4T does before the pads come up: the
@@ -1245,7 +1218,6 @@ static bool _eq_done(const dpout_link_t *l, u8 *st)
 static int _link_train(dpout_video_t *v, dpout_link_t *l)
 {
     u8 b, st[3];
-    char line[120];
 
     /* Precharge the lanes in use: common mode on for 100 us. */
     _sor_field(SOR_DP_PADCTL0, PADCTL_COMODE_MASK, _lane_pads(l->lanes) << 4);
@@ -1293,25 +1265,14 @@ static int _link_train(dpout_video_t *v, dpout_link_t *l)
             }
             memcpy(vs_before, l->vs, sizeof(vs_before));
             _lt_adjust(l);
-            {
-                char t[100];
-                s_printf(t, "cr try %d: lanes %02X %02X, sink asks swing %d/%d pre-emphasis %d/%d",
-                         tries, st[0], st[1], l->vs[0], l->vs[1], l->pe[0], l->pe[1]);
-                _vlog(v, t);
-            }
             same = memcmp(vs_before, l->vs, sizeof(vs_before)) ? 0 : same + 1;
         }
-        v->cr_tries = tries;
         if (!ok) {
             _tpg(l, TPG_NONE, TPS_NONE);
-            memcpy(v->lane_status, st, 3);
             s_printf(v->why, "clock recovery failed after %d tries (lanes %02X %02X)", tries, st[0], st[1]);
             return 2;
         }
     }
-    s_printf(line, "clock recovery in %d tries, swing %d/%d pre-emphasis %d/%d", v->cr_tries,
-             l->vs[0], l->vs[1], l->pe[0], l->pe[1]);
-    _vlog(v, line);
 
     /* Channel equalization: pattern 3 when the sink has it, with
      * post-cursor2, as L4T (link_cfg.tps, is_pc2_supported); else pattern 2. */
@@ -1338,7 +1299,6 @@ static int _link_train(dpout_video_t *v, dpout_link_t *l)
             }
         }
         _tpg(l, TPG_NONE, TPS_NONE);
-        memcpy(v->lane_status, st, 3);
         if (!ok) {
             if (!v->why[0])
                 s_printf(v->why, "equalization failed after %d tries (lanes %02X %02X align %02X)",
@@ -1346,8 +1306,6 @@ static int _link_train(dpout_video_t *v, dpout_link_t *l)
             return 3;
         }
     }
-    memcpy(v->vs, l->vs, 4);
-    memcpy(v->pe, l->pe, 4);
     return 0;
 }
 
@@ -1425,15 +1383,12 @@ static void _dc1_init(const dpout_mode_t *m, u32 fb)
     DC1(DC_CMD_STATE_CONTROL) = GENERAL_ACT_REQ | WIN_A_ACT_REQ;
 }
 
-static void _vlog(dpout_video_t *v, const char *text);
-
 /* The attach, in the order of L4T's tegra_dc_sor_attach: the SOR told the
  * raster, attached asleep and safe, then normal; the head started and its
  * clock to the SOR enabled; then the SOR awake. */
 static int _sor_attach(dpout_video_t *v, const dpout_mode_t *m)
 {
     u32 access, htotal, vtotal, hse, vse, hbe, vbe;
-    char line[120];
 
     access = DC1(DC_CMD_STATE_ACCESS);
     DC1(DC_CMD_STATE_ACCESS) = access | WRITE_MUX_ACTIVE;
@@ -1459,8 +1414,7 @@ static int _sor_attach(dpout_video_t *v, const dpout_mode_t *m)
     /* Attached, asleep, safe; then normal. */
     SOR(SOR_SUPER_STATE1) = SS1_ATTACHED | SS1_HEAD_OP_SLEEP;
     _sor_super_update();
-    if (_sor_poll(SOR_TEST, TEST_ATTACHED, TEST_ATTACHED, 50000))
-        _vlog(v, "attach: TEST never reported ATTACHED (L4T only logs this)");
+    _sor_poll(SOR_TEST, TEST_ATTACHED, TEST_ATTACHED, 50000);
     SOR(SOR_SUPER_STATE1) = SS1_ATTACHED | SS1_HEAD_OP_SLEEP | SS1_ORMODE_NORMAL;
     _sor_super_update();
 
@@ -1479,226 +1433,13 @@ static int _sor_attach(dpout_video_t *v, const dpout_mode_t *m)
     DC1(DC_CMD_DISPLAY_COMMAND) = DISP_CTRL_MODE_C_DISPLAY;
     DC1(DC_DISP_DISP_WIN_OPTIONS) = SOR1_ENABLE;
 
-    {
-        int r = _sor_poll(SOR_TEST, TEST_HEAD_OPMODE_MASK, TEST_HEAD_OPMODE_AWAKE, 200000);
-        s_printf(line, "attach: test %08X super1 %08X state1 %08X spare %08X winopt %08X cmd %08X",
-                 SOR(SOR_TEST), SOR(SOR_SUPER_STATE1), SOR(SOR_STATE1), SOR(SOR_DP_SPARE0),
-                 DC1(DC_DISP_DISP_WIN_OPTIONS), DC1(DC_CMD_DISPLAY_COMMAND));
-        _vlog(v, line);
-        return r;
-    }
-}
-
-/* How far the picture gets: frames out of the head, the raster into the
- * SOR, the video into the dock's converter. Read only, apart from arming
- * the CRCs and the sink's CRC test, which are stopped again. */
-static void _video_check(dpout_video_t *v)
-{
-    u8 b = 0, d[6];
-    char line[160];
-
-    /* The head: frame-end and underflow events over three frames, and
-     * the CRC of its active picture. */
-    /* The status bits latch only for enabled sources; the BPMP's interrupt
-     * controller has the display B line off, so nothing is delivered. */
-    DC1(DC_CMD_INT_ENABLE) = BIT(1) | BIT(2) | BIT(8) | BIT(14);  /* frame end, vblank, A under/overflow */
-    DC1(DC_CMD_INT_MASK) = 0;
-    DC1(DC_CMD_INT_STATUS) = 0xFFFFFFFF;
-    DC1(DC_COM_CRC_CONTROL) = BIT(3) | BIT(2) | BIT(0);           /* always, active data, on */
-    /* A frame counter that does not depend on interrupt logic: the head
-     * increments a host1x syncpoint at every vsync (hekate's panel uses 9). */
-    DC1(DC_CMD_CONT_SYNCPT_VSYNC) = SYNCPT_VSYNC_ENABLE | SYNCPT_VSYNC_INDX(DPOUT_SYNCPT);
-    {
-        u32 c0 = HOST1X(HOST1X_CH0_SYNC_SYNCPT_BASE + 4 * DPOUT_SYNCPT);
-        msleep(100);
-        v->dc_frames = HOST1X(HOST1X_CH0_SYNC_SYNCPT_BASE + 4 * DPOUT_SYNCPT) - c0;
-    }
-    /* The pixel clock as the SOR sees it: DP_DEBUG_MVID (0x12, mainline
-     * Linux's name) is Mvid against N_VAL (DP_MN0) of the link symbol
-     * clock, 270 MHz at 2.7 Gbps, 162 MHz at 1.62. */
-    {
-        u32 mvid = SOR(SOR_DP_DEBUG_MVID) & 0xFFFFFF;
-        u32 nval = SOR(SOR_DP_MN0) & 0xFFFFFF;
-        u32 ls_khz = (u32)s_link.bw * 27000;     /* the link symbol clock */
-        v->pclk_khz = nval ? (u32)(((u64)mvid * ls_khz) / nval) : 0;
-    }
-    DC1(DC_CMD_CONT_SYNCPT_VSYNC) = 0;
-    v->dc_int = DC1(DC_CMD_INT_STATUS);
-    v->dc_crc = DC1(DC_COM_CRC_CONTROL + 1);                       /* DC_COM_CRC_CHECKSUM */
-    DC1(DC_COM_CRC_CONTROL) = 0;
-    DC1(DC_CMD_INT_ENABLE) = 0;
-    DC1(DC_CMD_INT_STATUS) = 0xFFFFFFFF;
-
-    /* The SOR: the CRC of the raster it receives. */
-    SOR(SOR_CRCA) = 1;
-    SOR(SOR_CRC_CNTRL) = CRC_ARM;
-    msleep(50);
-    v->sor_crc_valid = (SOR(SOR_CRCA) & 1) != 0;
-    v->sor_crc = SOR(SOR_CRCB);
-    SOR(SOR_CRC_CNTRL) = 0;
-
-    /* The sink: its status, symbol errors, and its own CRC of the video
-     * it receives, when it has the test. */
-    dpout_dpcd_read(0x200, v->dpcd_200, 6);
-    /* Some converters drop sync for a moment when video starts (the Ugreen
-     * dock did, every time) and lock again: the later read counts too. */
-    if (v->dpcd_200[5] & SINK_PORT0_IN_SYNC)
-        v->in_sync = true;
-    dpout_dpcd_read(DPCD_SYMBOL_ERRORS, d, 4);
-    v->sym_err[0] = d[0] | (d[1] << 8);
-    v->sym_err[1] = d[2] | (d[3] << 8);
-    if (!dpout_dpcd_read(DPCD_TEST_SINK_MISC, &b, 1) && (b & TEST_CRC_SUPPORTED)) {
-        u8 c0 = b & TEST_CRC_COUNT_MASK;
-        v->sink_crc_test = true;
-        b = TEST_SINK_START;
-        dpout_dpcd_write(DPCD_TEST_SINK, &b, 1);
-        msleep(100);
-        dpout_dpcd_read(DPCD_TEST_SINK_MISC, &b, 1);
-        v->sink_crc_frames = ((b & TEST_CRC_COUNT_MASK) - c0) & TEST_CRC_COUNT_MASK;
-        dpout_dpcd_read(DPCD_TEST_CRC, d, 6);
-        v->sink_crc[0] = d[0] | (d[1] << 8);
-        v->sink_crc[1] = d[2] | (d[3] << 8);
-        v->sink_crc[2] = d[4] | (d[5] << 8);
-        b = 0;
-        dpout_dpcd_write(DPCD_TEST_SINK, &b, 1);
-    }
-    s_printf(line, "check: dc frames %d pclk %d kHz int %08X crc %08X, sor crc %08X valid %d, dpcd 200 %02X %02X %02X %02X %02X %02X",
-             v->dc_frames, v->pclk_khz, v->dc_int, v->dc_crc, v->sor_crc, v->sor_crc_valid, v->dpcd_200[0], v->dpcd_200[1],
-             v->dpcd_200[2], v->dpcd_200[3], v->dpcd_200[4], v->dpcd_200[5]);
-    _vlog(v, line);
-    s_printf(line, "check: symbol errors %04X %04X, sink crc test %d frames %d crc %04X %04X %04X",
-             v->sym_err[0], v->sym_err[1], v->sink_crc_test, v->sink_crc_frames, v->sink_crc[0],
-             v->sink_crc[1], v->sink_crc[2]);
-    _vlog(v, line);
-}
-
-/* ---- the whole of it --------------------------------------------------------- */
-
-/* Everything the picture depends on, for the log: CAR and PMC, every SOR1
- * register, the second head's command, display and window A registers
- * (active copies), and the sink's DPCD blocks. Read only. */
-static void _dump_words(dpout_video_t *v, const char *tag, volatile u32 *base, u32 first, u32 count)
-{
-    char line[200];
-    for (u32 i = 0; i < count; i += 8) {
-        u32 n = count - i < 8 ? count - i : 8;
-        char *p = line;
-        s_printf(p, "%s %03X:", tag, first + i);
-        p += strlen(p);
-        for (u32 j = 0; j < n; j++) {
-            s_printf(p, " %08X", base[first + i + j]);
-            p += strlen(p);
-        }
-        _vlog(v, line);
-    }
-}
-
-static void _dump_dpcd(dpout_video_t *v, u32 addr, u32 n)
-{
-    u8 d[16];
-    char line[120], *p = line;
-    memset(d, 0, sizeof(d));
-    int r = dpout_dpcd_read(addr, d, n);
-    s_printf(p, "dpcd %04X:", addr);
-    p += strlen(p);
-    for (u32 i = 0; i < n; i++) {
-        s_printf(p, " %02X", d[i]);
-        p += strlen(p);
-    }
-    if (r) {
-        s_printf(p, " (read failed %d)", r);
-    }
-    _vlog(v, line);
-}
-
-static void _dump(dpout_video_t *v)
-{
-    char line[200];
-    volatile u32 *car = (volatile u32 *)CLOCK_BASE;
-    volatile u32 *sor = (volatile u32 *)SOR1_BASE;
-    volatile u32 *dc = (volatile u32 *)DISPLAY_B_BASE;
-    u32 access, header;
-
-    _vlog(v, "dump: start");
-    s_printf(line, "car plld2 %08X %08X ss %08X %08X %08X, plldp %08X %08X ss %08X %08X %08X",
-             CLOCK(PLLD2_BASE_REG), CLOCK(PLLD2_MISC_REG), CLOCK(PLLD2_SS_CFG_REG),
-             CLOCK(PLLD2_SS_CFG_REG + 4), CLOCK(PLLD2_SS_CTRL2_REG), CLOCK(PLLDP_BASE_REG),
-             CLOCK(PLLDP_MISC_REG), CLOCK(PLLDP_SS_CFG_REG), CLOCK(PLLDP_SS_CFG_REG + 4),
-             CLOCK(PLLDP_SS_CTRL2_REG));
-    _vlog(v, line);
-    s_printf(line, "car disp1 %08X disp2 %08X sor1 %08X, enb L %08X X %08X Y %08X, rst L %08X X %08X Y %08X",
-             CLOCK(0x138), CLOCK(CLK_SOURCE_DISP2_REG), CLOCK(CLK_SOURCE_SOR1_REG),
-             CLOCK(CLK_RST_CONTROLLER_CLK_OUT_ENB_L), CLOCK(CLK_RST_CONTROLLER_CLK_OUT_ENB_X),
-             CLOCK(CLK_RST_CONTROLLER_CLK_OUT_ENB_Y), CLOCK(CLK_RST_CONTROLLER_RST_DEVICES_L),
-             CLOCK(CLK_RST_CONTROLLER_RST_DEVICES_X), CLOCK(CLK_RST_CONTROLLER_RST_DEVICES_Y));
-    _vlog(v, line);
-    s_printf(line, "pmc pwrgate %08X clamp %08X", PMC(APBDEV_PMC_PWRGATE_STATUS),
-             PMC(0x2C));   /* APBDEV_PMC_CLAMP_STATUS */
-    _vlog(v, line);
-    (void)car;
-
-    _dump_words(v, "sor", sor, 0x00, 0x78);
-
-    access = dc[DC_CMD_STATE_ACCESS];
-    header = dc[DC_CMD_DISPLAY_WINDOW_HEADER];
-    dc[DC_CMD_STATE_ACCESS] = READ_MUX_ACTIVE | (access & WRITE_MUX_ACTIVE);
-    _dump_words(v, "dc", dc, 0x028, 0x020);           /* syncpt, command, power, interrupts, state */
-    _dump_words(v, "dc", dc, 0x300, 0x008);           /* CRC, pin outputs */
-    _dump_words(v, "dc", dc, 0x400, 0x040);           /* the display registers */
-    dc[DC_CMD_DISPLAY_WINDOW_HEADER] = WINDOW_A_SELECT;
-    _dump_words(v, "dcA", dc, 0x700, 0x020);          /* window A */
-    _dump_words(v, "dcA", dc, 0x800, 0x010);          /* window A buffer */
-    /* What the head scans against what the GUI draws: row checksums of
-     * both buffers (identical right after the start, unless the copy or
-     * the address is wrong; all zero would be a black screen). */
-    {
-        volatile u32 *gui = (volatile u32 *)NYX_FB2_ADDRESS;
-        volatile u32 *tv = (volatile u32 *)dc[DC_WINBUF_START_ADDR];
-        static const u16 rows[3] = { 100, 360, 700 };
-        u32 sg[3], st[3];
-        for (u32 r = 0; r < 3; r++) {
-            sg[r] = st[r] = 0;
-            for (u32 x = 0; x < 1280; x++) {
-                sg[r] += gui[rows[r] * 1280 + x];
-                st[r] += tv[rows[r] * 1280 + x];
-            }
-        }
-        s_printf(line, "fb rows 100/360/700: gui %08X %08X %08X, scanned at %08X %08X %08X %08X",
-                 sg[0], sg[1], sg[2], (u32)tv, st[0], st[1], st[2]);
-        _vlog(v, line);
-    }
-    dc[DC_CMD_DISPLAY_WINDOW_HEADER] = header;
-    dc[DC_CMD_STATE_ACCESS] = access;
-
-    s_printf(line, "dpaux intr %08X auxstat %08X", DPAUX1(DPAUX1_INTR_AUX), DPAUX1(DPAUX1_DP_AUXSTAT));
-    _vlog(v, line);
-    _dump_dpcd(v, 0x000, 16);
-    _dump_dpcd(v, 0x2200, 16);
-    _dump_dpcd(v, 0x300, 12);
-    _dump_dpcd(v, 0x080, 16);
-    _dump_dpcd(v, 0x100, 16);
-    _dump_dpcd(v, 0x200, 16);
-    _dump_dpcd(v, 0x210, 8);
-    _dump_dpcd(v, 0x240, 8);
-    _dump_dpcd(v, 0x600, 1);
-    _vlog(v, "dump: end");
+    return _sor_poll(SOR_TEST, TEST_HEAD_OPMODE_MASK, TEST_HEAD_OPMODE_AWAKE, 200000);
 }
 
 static bool s_plls_started;
-static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb);
-
 int dpout_video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
 {
-    int r = _video_start(v, s, fb);
-    if (s_stage)
-        _dump(v);
-    return r;
-}
-
-static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
-{
     dpout_link_t *l = &s_link;
-    char line[160];
     u8 b;
 
     memset(v, 0, sizeof(*v));
@@ -1711,8 +1452,7 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
     /* tegra_dp_dpcd_init: the source's IEEE OUI (NVIDIA) into DPCD 300h. */
     {
         static const u8 oui[3] = { 0x00, 0x04, 0x4B };
-        int r = dpout_dpcd_write(0x300, oui, 3);
-        _vlog(v, r ? "source OUI 00044B: the write failed" : "source OUI 00044B written");
+        dpout_dpcd_write(0x300, oui, 3);
     }
     memset(l, 0, sizeof(*l));
     l->lanes = DPCD_MAX_LANES(s) >= 2 ? 2 : 1;            /* the port has two */
@@ -1731,10 +1471,6 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
         s_printf(v->why, "the mode does not fit the link");
         return 2;
     }
-    s_printf(line, "link %d lanes at %s: tu %d, active %d.%d%s, watermark %d, blank %d/%d",
-             l->lanes, dpout_rate_name(l->bw), l->tu, l->active_count, l->active_frac,
-             l->active_polarity ? "+" : "-", l->watermark, l->hblank_sym, l->vblank_sym);
-    _vlog(v, line);
 
     /* The pads' regulators, then the clocks: the macro's reference, the
      * pixel clock, the head, SOR1. */
@@ -1742,7 +1478,7 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
         s_printf(v->why, "TV clocks already in use; leaving them unchanged");
         return 12;
     }
-    _rails_on(v);
+    _rails_on();
     s_plls_started = true;
     if (_plldp_on()) {
         s_printf(v->why, "PLLDP did not lock");
@@ -1758,7 +1494,6 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
     }
     _sor1_block_on();
     s_stage = 1;
-    _vlog(v, "PLLDP 270 MHz, PLLD2 74.25 MHz, DISB and SOR1 up");
 
     /* The head, with the frame, stopped until the attach. */
     _dc1_init(&s_mode, fb);
@@ -1769,8 +1504,6 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
         u32 termadj = 0;
         s_stage = 2; // Own the macro even if its initialization only partly succeeds.
         int r = _sor_macro_up(l->bw, &termadj);
-        s_printf(line, "termination calibrated to %d", termadj);
-        _vlog(v, line);
         if (r) {
             s_printf(v->why, "the SOR macro's PLL did not come up");
             return 6;
@@ -1798,22 +1531,8 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
         b = 1;
         if (!dpout_dpcd_write(DPCD_EDP_CONFIG_SET, &b, 1)) {
             _sor_field(SOR_DP_SPARE0, SPARE_PANEL_INTERNAL, SPARE_PANEL_INTERNAL);
-            v->assr = true;
             s_assr = true;
-            _vlog(v, "the sink can use the alternate scrambler reset: on, both sides");
         }
-    }
-    s_printf(line, "xbar %08X pol %08X padctl %08X linkctl %08X clk %08X pll0 %08X pll2 %08X",
-             SOR(SOR_XBAR_CTRL), SOR(SOR_XBAR_POL), SOR(SOR_DP_PADCTL0), SOR(SOR_DP_LINKCTL0),
-             SOR(SOR_CLK_CNTRL), SOR(SOR_PLL0), SOR(SOR_PLL2));
-    _vlog(v, line);
-    _vlog(v, _mariko() ? "SOR1 macro up on its feedback clock, lanes powered (Mariko prods)"
-                       : "SOR1 macro up on its feedback clock, lanes powered (Erista prods)");
-    if (s_pol_invert || s_xbar[0] != 2) {
-        s_printf(line, "BENCH TEST from hwtest.ini: lanes %s%s%s (xbar lane 0 -> pad %d, lane 1 -> pad %d)",
-                 s_pol_invert ? "inverted" : "", s_pol_invert && s_xbar[0] != 2 ? " and " : "",
-                 s_xbar[0] != 2 ? "exchanged" : "", s_xbar[0], s_xbar[1]);
-        _vlog(v, line);
     }
 
     /* The sink awake, then the link. */
@@ -1835,29 +1554,15 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
             msleep(20);
             dpout_dpcd_read(DPCD_SYMBOL_ERRORS, e4, 4);
             errs = ((e4[0] | (e4[1] << 8)) & 0x7FFF) + ((e4[2] | (e4[3] << 8)) & 0x7FFF);
-            s_printf(line, "margin at swing %d/%d: %d symbol errors in 20 ms (%02X%02X %02X%02X; "
-                     "first read %02X%02X %02X%02X)", l->vs[0], l->vs[1], errs, e4[1], e4[0],
-                     e4[3], e4[2], e0[1], e0[0], e0[3], e0[2]);
-            _vlog(v, line);
-            v->margin_errors = errs;
             if (!errs || l->vs_floor >= 2)
                 break;
             l->vs_floor++;
-            v->margin_retries++;
-            s_printf(line, "training again from swing %d", l->vs_floor);
-            _vlog(v, line);
             continue;
         }
         if (l->bw == 0x06)
             return 9;
-        {
-            u8 next = l->bw == 0x14 ? 0x0A : 0x06;
-            s_printf(line, "training failed at %s: %s; trying %s", dpout_rate_name(l->bw), v->why,
-                     dpout_rate_name(next));
-            _vlog(v, line);
-            l->bw = next;
-            l->vs_floor = 0;
-        }
+        l->bw = l->bw == 0x14 ? 0x0A : 0x06;
+        l->vs_floor = 0;
         v->rate = l->bw;
         v->why[0] = 0;
         if (_link_calc(l, &s_mode)) {
@@ -1867,10 +1572,6 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
         _sor_set_dp_mode(l);
         _sor_rate_prods(l->bw);
     }
-    s_printf(line, "link trained: lanes %02X %02X align %02X, swing %d/%d pre-emphasis %d/%d",
-             v->lane_status[0], v->lane_status[1], v->lane_status[2], l->vs[0], l->vs[1],
-             l->pe[0], l->pe[1]);
-    _vlog(v, line);
 
     /* The SOR attached to the head and awake, the picture on. No SOR_PWR
      * trigger: that runs the power sequencer, which L4T leaves alone for
@@ -1882,13 +1583,6 @@ static int _video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb)
     }
     s_stage = 3;
     msleep(85);
-    if (!dpout_dpcd_read(DPCD_SINK_STATUS, &b, 1))
-        v->in_sync = (b & SINK_PORT0_IN_SYNC) != 0;
-    dpout_dpcd_read(DPCD_LANE0_1_STATUS, v->lane_status, 3);
-    s_printf(line, "attached, sink %s sync, lanes %02X %02X %02X", v->in_sync ? "in" : "NOT in",
-             v->lane_status[0], v->lane_status[1], v->lane_status[2]);
-    _vlog(v, line);
-    _video_check(v);
     return 0;
 }
 
@@ -1971,9 +1665,4 @@ void dpout_video_stop(void)
     CLOCK(PLLD2_BASE_REG) &= ~PLLSS_BASE_ENABLE;
     CLOCK(PLLDP_BASE_REG) &= ~PLLSS_BASE_ENABLE;
     s_plls_started = false;
-}
-
-void dpout_set_logger(void (*fn)(const char *))
-{
-    s_log = fn;
 }

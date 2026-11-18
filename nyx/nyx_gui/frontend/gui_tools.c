@@ -211,9 +211,10 @@ static lv_res_t _create_mbox_hid(usb_ctxt_t *usbs)
 	lv_obj_set_top(mbox, true);
 
 	gui_bluetooth_shutdown();
-	gui_tv_shutdown(false);
+	gui_tv_shutdown();
 	usb_device_gadget_hid(usbs);
 	gui_tv_resume_detection();
+	gui_bluetooth_resume();
 
 	lv_mbox_add_btns(mbox, mbox_btn_map, nyx_mbox_action);
 
@@ -308,12 +309,13 @@ static lv_res_t _create_mbox_ums(usb_ctxt_t *usbs)
 	lv_obj_set_top(mbox, true);
 
 	gui_bluetooth_shutdown();
-	gui_tv_shutdown(false);
+	gui_tv_shutdown();
 	// Dim backlight.
 	display_backlight_brightness(20, 1000);
 
 	usb_device_gadget_ums(usbs);
 	gui_tv_resume_detection();
+	gui_bluetooth_resume();
 
 	// Restore backlight.
 	display_backlight_brightness(h_cfg.backlight - 20, 1000);

@@ -3,11 +3,14 @@
  * (DPAUX1) and the sink's DPCD, then SOR1 and the second display head.
  *
  * The PD controller has already routed SOR1's lanes to the port and the
- * dock has raised HPD (the Dock Test's handshake). What follows is what the
+ * dock has raised HPD (the usbpd handshake). What follows is what the
  * display driver does next, on the SoC side: the AUX channel to the dock's
  * DisplayPort sink, then link training, then video. coreboot's Tegra210
  * driver and L4T's are the references; the Switch uses SOR1, DPAUX1 and
  * the second display controller (DC1), two lanes, as its device tree says.
+ *
+ * From HWTest-RCM by Creased (Baptiste MOINE), as ported by Hekate Nova Pro
+ * (Retrogendude).
  */
 #ifndef HWTEST_DPOUT_H
 #define HWTEST_DPOUT_H
@@ -17,7 +20,6 @@
 typedef struct {
     bool hpd;                 /* as DPAUX1 sees the hot plug detect line  */
     bool answered;            /* the sink answered an AUX read            */
-    u32  aux_stat;            /* the last AUXSTAT, for the log            */
     u8   dpcd[16];            /* DPCD 000..00F                            */
     u8   sink_count;          /* DPCD 200                                 */
     u8   lane_status[3];      /* DPCD 202..204, as the last link left it  */
@@ -58,39 +60,12 @@ const char *dpout_rate_name(u8 rate);
  * (DC1) sending the frame at fb to the TV, 1280x720 at 60 Hz, the GUI's
  * own size. The picture stays until dpout_video_stop(). */
 typedef struct {
-    bool in_sync;             /* the sink says its port 0 is in sync       */
-    bool assr;                /* alternate scrambler reset in use          */
-    u32  margin_errors;       /* symbol errors in 20 ms of idle, last train */
-    u32  margin_retries;      /* trainings again from a higher swing        */
-    bool ldo7_on, ldo8_on;    /* the pads' regulators, after the start     */
     u8   lanes, rate;         /* as trained                                */
-    u8   vs[4], pe[4];        /* the drive levels the sink settled on      */
-    u8   lane_status[3];      /* DPCD 202..204 after training              */
-    u32  cr_tries;            /* clock recovery rounds, last training      */
-    /* How far the picture gets, read after the attach. */
-    u32  dc_int, dc_crc;      /* the head: events over 3 frames, its CRC    */
-    u32  dc_frames;           /* vsyncs counted in 100 ms (host1x syncpt)   */
-    u32  sor_crc;             /* the SOR: CRC of the raster it receives      */
-    bool sor_crc_valid;
-    u8   dpcd_200[6];         /* DPCD 200..205 after the attach              */
-    u16  sym_err[2];          /* DPCD 210..213, lanes 0 and 1                */
-    u32  pclk_khz;            /* the pixel clock the SOR measures (MVID)    */
-    bool sink_crc_test;       /* the sink has the DPCD test CRC             */
-    u8   sink_crc_frames;     /* frames it counted in 100 ms                 */
-    u16  sink_crc[3];
     char why[96];
-    char log[200];            /* the last breadcrumb, for the UART         */
 } dpout_video_t;
 
 int  dpout_video_start(dpout_video_t *v, const dpout_sink_t *s, u32 fb);
 void dpout_video_stop(void);
 bool dpout_video_on(void);
-void dpout_set_logger(void (*fn)(const char *));   /* the breadcrumbs */
-/* Bench tests of the lanes, from hwtest.ini (dp_pol, dp_swap): both lanes
- * driven with inverted polarity, and / or lanes 0 and 1 exchanged on the
- * pads. For a console whose DisplayPort pairs are suspected swapped: a
- * Nintendo dock's STDP2550 needs the right polarity, a Realtek converter
- * corrects it on its own. Set before the Dock Test runs. */
-void dpout_lane_test(bool invert, bool swap);
 
 #endif

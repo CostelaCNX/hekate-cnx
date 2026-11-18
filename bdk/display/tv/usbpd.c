@@ -1,5 +1,8 @@
 /*
  * usbpd.c - the BM92T36 and the dock handshake (see usbpd.h).
+ *
+ * From HWTest-RCM by Creased (Baptiste MOINE), as ported by Hekate Nova Pro
+ * (Retrogendude).
  */
 #include <bdk.h>
 #include <string.h>
@@ -92,6 +95,7 @@
 #define PINMUX_AUX_HDMI_INT_DP_HPD  0x19C
 
 #define STEP_TIMEOUT_MS     2500
+#define ND_AUX_TIMEOUT_MS   600     /* optional LED/hub VDMs on Nintendo-ID docks */
 #define HPD_WAIT_MS         1500    /* the dock's HDMI side raises HPD after the lanes */
 
 /* VENDOR_CONFIG */
@@ -154,6 +158,8 @@ static int _wr_packet_stop(const u8 *buf, u32 size)
     I2C1(0x04) = PD_ADDR << 1;                           /* CMD_ADDR0, a write */
     I2C1(0x00) = (2 << 12) | BIT(11);                    /* CNFG: debounce 4T, new master FSM */
     I2C1(0x5C) = BIT(1) | BIT(0);                        /* flush both FIFOs */
+    for (u32 i = 0; i < 20 && (I2C1(0x5C) & 3); i++)
+        usleep(1);
     I2C1(0x68) = I2C1(0x68);                             /* stale status cleared */
     I2C1(0x8C) = BIT(5) | BIT(2) | BIT(0);               /* load the configuration */
     for (u32 i = 0; i < 20 && (I2C1(0x8C) & BIT(0)); i++)
@@ -188,6 +194,9 @@ static int _wr_packet_stop(const u8 *buf, u32 size)
     }
     if (st & (BIT(3) | BIT(2)))
         res = 1;
+    for (u32 i = 0; i < 200 && (I2C1(0x1C) & BIT(8)); i++)
+        usleep(5);
+    usleep(20);
     I2C1(0x68) = st;                                     /* clear */
     I2C1(0x00) &= ~(BIT(10) | BIT(9));
     return res;
@@ -266,17 +275,15 @@ int pd_dock_attached(bool *inserted, bool *official_dock)
     u32 n_pdos = pdos[0] / 4;
     if (n_pdos > 7)
         n_pdos = 7;
-    u32 mv0 = 0, ma0 = 0;
+    u32 mv0 = 0;
     bool has_15v = false;
     for (u32 i = 0; i < n_pdos; i++) {
         const u8 *b = pdos + 1 + i * 4;
         u32 pdo = (u32)b[0] | (u32)b[1] << 8 | (u32)b[2] << 16 | (u32)b[3] << 24;
         u32 mv, ma;
         _pdo_decode(pdo, &mv, &ma);
-        if (i == 0) {
+        if (i == 0)
             mv0 = mv;
-            ma0 = ma;
-        }
         if (mv == DOCK_MV && ma >= 1500 && ma <= DOCK_MA_MAX)
             has_15v = true;
     }
@@ -347,33 +354,6 @@ void pd_snapshot(pd_snapshot_t *s, bool read_alert)
 
 /* ---- the pins ------------------------------------------------------------ */
 
-static void _pad(u32 port, u32 pin, u32 mux, pd_pad_t *p)
-{
-    /* The bank's CNF; OE +0x10, OUT +0x20, IN +0x30. */
-    u32 base = ((port >> 2) << 8) + ((port & 3) << 2);
-    p->mux  = PINMUX_AUX(mux);
-    p->gpio = (GPIO(base + 0x00) & pin) != 0;
-    p->oe   = (GPIO(base + 0x10) & pin) != 0;
-    p->out  = (GPIO(base + 0x20) & pin) != 0;
-    p->in   = (GPIO(base + 0x30) & pin) != 0;
-}
-
-void pd_pads(pd_pads_t *p)
-{
-    _pad(GPIO_PORT_V, GPIO_PIN_5, PINMUX_AUX_AP_READY, &p->reset);
-    _pad(GPIO_PORT_K, GPIO_PIN_4, PINMUX_AUX_GPIO_PK4, &p->irq);
-    _pad(GPIO_PORT_K, GPIO_PIN_5, PINMUX_AUX_GPIO_PK5, &p->vconn);
-}
-
-void pd_pad_text(const pd_pad_t *p, char *out)
-{
-    if (!p->gpio)
-        s_printf(out, "sfio");
-    else if (p->oe)
-        s_printf(out, "out %d", p->out);
-    else
-        s_printf(out, "in %d", p->in);
-}
 
 /* ---- HOS's start-up ------------------------------------------------------ */
 
@@ -393,33 +373,16 @@ static void _rgo(pd_reset_t *r, pd_reset_state_t s)
     r->since = get_tmr_ms();
 }
 
-static void _rlog(pd_reset_t *r, const char *text)
-{
-    s_printf(r->log, "gui: pd reset: %s\n", text);
-    r->log_new = true;
-}
-
 static void _rfail(pd_reset_t *r, const char *why)
 {
-    char line[80];
     s_printf(r->why, "%s", why);
     r->failed_at = r->state;
     _rgo(r, PDR_FAILED);
-    s_printf(line, "failed: %s", why);
-    _rlog(r, line);
 }
 
 void pd_reset_start(pd_reset_t *r)
 {
-    char a[12], b[12], c[12], line[96];
     memset(r, 0, sizeof(*r));
-    pd_pads(&r->before);
-    pd_pad_text(&r->before.reset, a);
-    pd_pad_text(&r->before.irq, b);
-    pd_pad_text(&r->before.vconn, c);
-    s_printf(line, "pins before: PV5 %s (mux %03X), PK4 %s (mux %03X), PK5 %s",
-             a, r->before.reset.mux, b, r->before.irq.mux, c);
-    _rlog(r, line);
 
     /* The interrupt line, to watch: pulled up and tristated, as L4T has it. */
     PINMUX_AUX(PINMUX_AUX_GPIO_PK4) = PINMUX_INPUT_ENABLE | PINMUX_TRISTATE | PINMUX_PULL_UP;
@@ -440,7 +403,6 @@ void pd_reset_step(pd_reset_t *r)
     u32 now = get_tmr_ms();
     u32 el = now - r->since;
     u8 b[2];
-    char line[96];
 
     switch (r->state) {
     case PDR_PULSE:
@@ -457,77 +419,47 @@ void pd_reset_step(pd_reset_t *r)
         break;
 
     case PDR_WAIT_IRQ:
-        if (!gpio_read(GPIO_PORT_K, GPIO_PIN_4)) {
-            r->irq_ms = now - r->started;
-            s_printf(line, "interrupt line low %d ms after the pulse", r->irq_ms);
-            _rlog(r, line);
+        /* Some consoles never pull it low; go on after 2 s regardless. */
+        if (!gpio_read(GPIO_PORT_K, GPIO_PIN_4) || el >= PDR_IRQ_MS)
             _rgo(r, PDR_WAIT_ID);
-        } else if (el >= PDR_IRQ_MS) {
-            r->irq_ms = (u32)-1;
-            _rlog(r, "interrupt line still high after 2 s, going on without it");
-            _rgo(r, PDR_WAIT_ID);
-        }
         break;
 
     case PDR_WAIT_ID:
         s_normal_mode = false;
-        if (_rd(DEV_ID_REG, b, 2))
-            r->id_errors = true;
-        r->dev_id = b[0] | b[1] << 8;
-        if (r->dev_id) {
-            r->id_ms = now - r->started;
-            s_printf(line, "device id %04X %d ms after the pulse%s", r->dev_id, r->id_ms,
-                     r->id_errors ? ", reads reported errors before" : "");
-            _rlog(r, line);
-            r->alert = _rd16(ALERT_STATUS_REG);     /* HOS reads it here */
+        if (!_rd(DEV_ID_REG, b, 2) && (b[0] | b[1] << 8)) {
+            _rd16(ALERT_STATUS_REG);                /* HOS reads it here */
             _cmd(SYS_RESET_CMD);
             _rgo(r, PDR_SYS_RESET);
         } else if (el >= PDR_ID_MS) {
-            _rfail(r, r->id_errors ? "no device id within 10 s, the reads reporting errors"
-                                   : "no device id within 10 s, the reads reporting none");
+            _rfail(r, "no device id within 10 s");
         }
         break;
 
     case PDR_SYS_RESET:
         if (el < PDR_CMD_MS)
             break;
-        r->alert   = _rd16(ALERT_STATUS_REG);
-        r->status1 = _rd16(STATUS1_REG);
-        r->status2 = _rd16(STATUS2_REG);
-        s_printf(line, "sys reset sent, alert %04X s1 %04X s2 %04X", r->alert, r->status1,
-                 r->status2);
-        _rlog(r, line);
+        _rd16(ALERT_STATUS_REG);
         _rgo(r, PDR_CONFIG);
         break;
 
     case PDR_CONFIG: {
         u8 on[2] = { 0xFF, 0x00 };
         u16 vc;
-        r->man_id  = _rd16(MAN_ID_REG);
-        r->fw_type = _rd16(FW_TYPE_REG);
-        r->fw_rev  = _rd16(FW_REVISION_REG);
         /* The DisplayPort alerts on, the value HOS writes. */
         if (_wr(DP_ALERT_EN_REG, on, 2)) {
             _rfail(r, "the DP alert enable register did not take the write");
             break;
         }
-        r->dp_alert_en = _rd16(DP_ALERT_EN_REG);
         /* The over-current protection on: HOS clears the bit that turns
          * it off, when it finds it set. */
         vc = _rd16(VENDOR_CONFIG_REG);
         if (vc & VENDOR_CONFIG_OCP_DISABLE) {
             u8 w[2] = { (vc & ~VENDOR_CONFIG_OCP_DISABLE) & 0xFF, vc >> 8 };
-            r->ocp_was_off = true;
             if (_wr(VENDOR_CONFIG_REG, w, 2)) {
                 _rfail(r, "the vendor config register did not take the write");
                 break;
             }
         }
-        r->vendor_cfg = _rd16(VENDOR_CONFIG_REG);
-        s_printf(line, "ids %04X/%04X fw %04X rev %04X, dp alerts %04X, vendor cfg %04X%s",
-                 r->man_id, r->dev_id, r->fw_type, r->fw_rev, r->dp_alert_en, r->vendor_cfg,
-                 r->ocp_was_off ? " (ocp was off)" : "");
-        _rlog(r, line);
         _rgo(r, PDR_DONE);
         break;
     }
@@ -564,9 +496,10 @@ static void _go(dock_t *d, dock_state_t s)
     d->since = get_tmr_ms();
     if (!retrying_hub)
         d->tries = 0;
-    s_printf(d->log, "gui: dock %s: alert %04X s1 %04X s2 %04X dp %04X\n",
-             dock_state_name(s), d->alerts, d->s1, d->s2, d->dp);
-    d->log_new = true;
+    if (s == DOCK_DONE) {
+        d->dp_status = d->dp;
+        d->hpd = _hpd();
+    }
 }
 
 static void _fail(dock_t *d, const char *why)
@@ -636,6 +569,8 @@ static void _send_vdm(dock_t *d, const u8 *msg, u32 len, dock_state_t next)
         _fail(d, "the message could not be written to the controller");
         return;
     }
+    d->alerts &= ~(PD_AL_CMD_DONE | PD_AL_VDM_RECEIVED);
+    usleep(50);
     _cmd(SEND_VDM_CMD);
     _go(d, next);
 }
@@ -881,13 +816,22 @@ void dock_step(dock_t *d)
     case DOCK_NIN_SENT:
     case DOCK_SVID_SENT:
     case DOCK_MODE_SENT:
+        if (_take(d, PD_AL_VDM_RECEIVED)) {
+            _cmd_go(d, ACCEPT_VDM_CMD, d->state + 1);
+        } else if (_timed_out(d)) {
+            _fail(d, "no reply to the message");
+        }
+        break;
+
+    /* DisplayPort is already negotiated before these auxiliary Nintendo dock
+     * unstructured VDMs; third-party and newer docks may omit LED/hub replies. */
     case DOCK_QUERY_SENT:
     case DOCK_LED_SENT:
     case DOCK_HUB_SENT:
         if (_take(d, PD_AL_VDM_RECEIVED)) {
             _cmd_go(d, ACCEPT_VDM_CMD, d->state + 1);
-        } else if (_timed_out(d)) {
-            _fail(d, "no reply to the message");
+        } else if (get_tmr_ms() - d->since > ND_AUX_TIMEOUT_MS) {
+            _go(d, DOCK_DONE);
         }
         break;
 
@@ -1006,7 +950,7 @@ void dock_step(dock_t *d)
     case DOCK_QUERY_ACC:
         r = _cmd_done(d);
         if (r <= 0) {
-            if (r < 0) _fail(d, "the reply could not be read");
+            if (r < 0) _go(d, DOCK_DONE);
             break;
         }
         _read_vdm(vdm);
@@ -1025,7 +969,7 @@ void dock_step(dock_t *d)
         if (!d->led_lit) {
             r = _cmd_done(d);
             if (r <= 0) {
-                if (r < 0) _fail(d, "the reply could not be read");
+                if (r < 0) _go(d, DOCK_DONE);
                 break;
             }
             d->led_lit = true;
@@ -1040,7 +984,7 @@ void dock_step(dock_t *d)
     case DOCK_HUB_ACC:
         r = _cmd_done(d);
         if (r <= 0) {
-            if (r < 0) _fail(d, "the reply could not be read");
+            if (r < 0) _go(d, DOCK_DONE);
             break;
         }
         _read_vdm(vdm);

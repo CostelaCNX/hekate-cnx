@@ -538,6 +538,9 @@ console:
 		return false;
 	}
 
+	if (wireless && jc_drv_ctx.calibration_step != JC_CAL_MAX_STEPS)
+		goto set_cursor;
+
 	// Calculate new cursor position.
 	if (!use_right)
 	{
@@ -600,6 +603,16 @@ console:
 		}
 	}
 
+set_cursor:
+	if (jc_pad->left)
+		jc_drv_ctx.pos_x -= 12;
+	if (jc_pad->right)
+		jc_drv_ctx.pos_x += 12;
+	if (jc_pad->up)
+		jc_drv_ctx.pos_y -= 12;
+	if (jc_pad->down)
+		jc_drv_ctx.pos_y += 12;
+
 	// Ensure value inside screen limits.
 	if (jc_drv_ctx.pos_x < 0)
 		jc_drv_ctx.pos_x = 0;
@@ -616,7 +629,8 @@ console:
 	data->point.y = jc_drv_ctx.pos_y;
 
 	// Auto hide cursor.
-	if (jc_drv_ctx.pos_x != jc_drv_ctx.pos_last_x || jc_drv_ctx.pos_y != jc_drv_ctx.pos_last_y)
+	if (jc_drv_ctx.pos_x != jc_drv_ctx.pos_last_x || jc_drv_ctx.pos_y != jc_drv_ctx.pos_last_y ||
+		(wireless && (jc_pad->a || jc_pad->zl || jc_pad->zr)))
 	{
 		jc_drv_ctx.pos_last_x = jc_drv_ctx.pos_x;
 		jc_drv_ctx.pos_last_y = jc_drv_ctx.pos_y;
@@ -646,11 +660,13 @@ console:
 			data->state = LV_INDEV_STATE_REL; // Ensure that no clicks are allowed.
 	}
 
-	if (jc_pad->b && close_btn)
+	if (jc_pad->b && close_btn && lv_obj_get_click(close_btn))
 	{
-		lv_action_t close_btn_action = lv_btn_get_action(close_btn, LV_BTN_ACTION_CLICK);
-		close_btn_action(close_btn);
+		lv_obj_t *button = close_btn;
+		lv_action_t close_btn_action = lv_btn_get_action(button, LV_BTN_ACTION_CLICK);
 		close_btn = NULL;
+		if (close_btn_action)
+			close_btn_action(button);
 	}
 
 	return false; // No buffering so no more data read.
@@ -2556,6 +2572,8 @@ void nyx_load_and_run()
 	indev_drv_jc.type = LV_INDEV_TYPE_POINTER;
 	indev_drv_jc.read = _jc_virt_mouse_read;
 	memset(&jc_drv_ctx, 0, sizeof(jc_lv_driver_t));
+	jc_drv_ctx.pos_x = jc_drv_ctx.pos_last_x = 640;
+	jc_drv_ctx.pos_y = jc_drv_ctx.pos_last_y = 360;
 	jc_drv_ctx.indev_jc = lv_indev_drv_register(&indev_drv_jc);
 	close_btn = NULL;
 

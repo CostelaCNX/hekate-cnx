@@ -1,7 +1,15 @@
 https://github.com/bluekitchen/btstack
 Revision 9edb5d82ea6ec4466a393415d65030929330acdf
-Selected sources and headers; Nova-specific modifications are documented below. Personal experimental build.
+Selected sources and headers, as imported by Hekate Nova Pro (Retrogendude).
+BTstack is licensed by BlueKitchen GmbH under the terms in LICENSE in this directory.
 
-Nova23 modification: classic/hid_host.c optionally opens known HID PSM17/19 without SDP (NOVA_HID_KNOWN_PSMS), skips incoming descriptor query, and cleans up immediate channel failures and a failed interrupt channel while control is open. Generic behavior is unchanged when the macro is absent. License retained.
-
-Nova26 modification (NOVA_HID_KNOWN_PSMS only): when paired report-mode HID opens cross, a peer-initiated control/interrupt channel supersedes an outgoing channel still awaiting completion. Existing HID CID retained; established/duplicate incoming channels are not replaced. CHANNEL_OPENED callbacks match canonical L2CAP CID plus peer, so late results of superseded channels cannot finalize the active session. Late successful noncanonical channels are disconnected; other superseded entries follow L2CAP response/RTX cleanup without modifying L2CAP code. Full vendor diff supplied.
+Nova modifications, all under NOVA_HID_KNOWN_PSMS in classic/hid_host.c; generic
+behavior is unchanged when the macro is absent:
+- Known HID PSM 17/19 are opened without an SDP query; the incoming descriptor
+  query is skipped; immediate channel failures and a failed interrupt channel
+  while control is open are cleaned up.
+- When paired report-mode HID opens cross, a peer-initiated control/interrupt
+  channel supersedes an outgoing channel still awaiting completion. CHANNEL_OPENED
+  callbacks match the canonical L2CAP CID plus peer, so late results of superseded
+  channels cannot finalize the active session; late successful noncanonical
+  channels are disconnected.

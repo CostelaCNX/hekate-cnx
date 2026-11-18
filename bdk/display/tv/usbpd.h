@@ -3,12 +3,14 @@
  * past what bdk reads from it: its status and alert registers, its
  * commands, and the conversation the console has with its dock.
  *
+ * From HWTest-RCM by Creased (Baptiste MOINE), as ported by Hekate Nova Pro
+ * (Retrogendude).
+ *
  * The register and command map and the handshake follow CTCaer's bm92txx.c
  * in the switchroot L4T kernel, which is what Linux on the Switch docks
- * with; HOS does the same from its usb sysmodule. None of it runs from the
- * health check: the handshake changes the port's state (a 15 V request, a
- * data role swap, the dock's DisplayPort mode, lights and hub), so it only
- * runs from the GUI's Dock Test, behind its Run.
+ * with; HOS does the same from its usb sysmodule. The handshake changes the
+ * port's state (a 15 V request, a data role swap, the dock's DisplayPort
+ * mode, lights and hub), so it only runs when TV output is started.
  *
  * The USB 3 / DisplayPort switch (PI3USB30532) that sits between the SoC
  * and the port has no address on any I2C bus the SoC reaches (the census of
@@ -76,28 +78,13 @@ void pd_snapshot(pd_snapshot_t *s, bool read_alert);
 int pd_dock_attached(bool *inserted, bool *official_dock);
 const char *pd_lastcmd_name(u16 status1);
 
-/* ---- the controller's pins, and what HOS does to it at boot ---- */
-
-typedef struct {
-    u32  mux;                 /* its PINMUX_AUX register                  */
-    bool gpio, oe, out, in;   /* GPIO mode, output on, level driven, read */
-} pd_pad_t;
-
-typedef struct {
-    pd_pad_t reset;           /* PV5, PdRstN to HOS's gpio service        */
-    pd_pad_t irq;             /* PK4, CradleIrq, active low               */
-    pd_pad_t vconn;           /* PK5, PdVconnEn                           */
-} pd_pads_t;
-
-void pd_pads(pd_pads_t *p);                      /* reads, changes nothing */
-void pd_pad_text(const pd_pad_t *p, char *out);  /* "out 1", "in 0", "sfio" */
+/* ---- what HOS does to the controller at boot ---- */
 
 /* The usb sysmodule's start-up, at every boot of a console with a battery
  * (read from its 17.0.0 build): a 30 ms pulse on PV5, 100 ms, the
  * interrupt line's fall, the device id polled every 10 ms until it answers
  * (10 s at most), SYS_RESET, then the DisplayPort alerts on and the
- * over-current protection on. Only from the Dock Test's Reset Chip, never
- * on its own. */
+ * over-current protection on. Only run when the controller does not answer. */
 typedef enum {
     PDR_IDLE,
     PDR_PULSE,            /* PV5 high                                     */
@@ -113,18 +100,8 @@ typedef enum {
 typedef struct {
     pd_reset_state_t state;
     u32  since, started;      /* ms                                       */
-    pd_pads_t before;         /* the pins as found                        */
-    u32  irq_ms;              /* PK4's fall after the pulse; -1 if never  */
-    u32  id_ms;               /* the device id's return after the pulse   */
-    bool id_errors;           /* reads reported errors while waiting      */
-    u16  alert, status1, status2;   /* after the command                  */
-    u16  dev_id, man_id, fw_type, fw_rev;
-    u16  dp_alert_en, vendor_cfg;   /* as read back                       */
-    bool ocp_was_off;         /* the over-current protection was disabled */
     pd_reset_state_t failed_at;     /* the step, when PDR_FAILED          */
     char why[96];
-    char log[96];             /* the last breadcrumb for the debug UART  */
-    bool log_new;
 } pd_reset_t;
 
 void pd_reset_start(pd_reset_t *r);
@@ -189,8 +166,6 @@ typedef struct {
     dock_state_t failed_state; /* the step, when DOCK_FAILED              */
     const char *failed_at;    /* its name                                 */
     char fail[96];            /* and why                                  */
-    char log[96];             /* the last breadcrumb for the debug UART   */
-    bool log_new;
 } dock_t;
 
 void dock_start(dock_t *d);
