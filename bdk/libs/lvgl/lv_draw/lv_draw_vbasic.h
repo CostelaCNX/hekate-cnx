@@ -38,6 +38,7 @@ extern "C" {
  **********************/
 
 void lv_vpx(lv_coord_t x, lv_coord_t y, const lv_area_t * mask_p, lv_color_t color, lv_opa_t opa);
+void lv_draw_set_service_cb(void (*callback)(void));
 /**
  * Fill an area in the Virtual Display Buffer
  * @param cords_p coordinates of the area to fill

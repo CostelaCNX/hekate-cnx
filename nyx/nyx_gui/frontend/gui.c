@@ -19,12 +19,15 @@
 #include <bdk.h>
 
 #include "gui.h"
+#include "gui_tv.h"
+#include "gui_bluetooth.h"
 #include "gui_emummc_tools.h"
 #include "gui_tools.h"
 #include "gui_info.h"
 #include "gui_options.h"
 #include "gui_extras.h"
 #include <libs/lvgl/lv_themes/lv_theme_hekate.h>
+#include <libs/lvgl/lv_draw/lv_draw_vbasic.h>
 #include <libs/lvgl/lvgl.h>
 #include "../gfx/logos-gui.h"
 
@@ -314,10 +317,12 @@ static void _disp_fb_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const
 {
 	// Draw to intermediate non-rotated framebuffer.
 	gfx_set_rect_pitch((u32 *)NYX_FB2_ADDRESS, (u32 *)color_p, 1280, x1, y1, x2, y2);
+	gui_tv_dirty(y1, y2);
+	gui_bluetooth_poll_fast();
 
 	// Rotate and copy to visible framebuffer.
 	if (disp_init_done)
-		vic_compose();
+		vic_compose_poll(gui_bluetooth_draw_poll);
 
 	// Check if display init was done. If it's the first big draw, init.
 	if (!disp_init_done && ((x2 - x1 + 1) > 600))
@@ -384,8 +389,15 @@ static bool _fts_touch_read(lv_indev_data_t *data)
 
 static bool _jc_virt_mouse_read(lv_indev_data_t *data)
 {
+	static int bluetooth_side = -1;
+	if (n_cfg.jc_disable && !gui_bluetooth_active())
+	{
+		data->state = LV_INDEV_STATE_REL;
+		return false;
+	}
+
 	// Poll Joy-Con.
-	jc_gamepad_rpt_t *jc_pad = joycon_poll();
+	jc_gamepad_rpt_t *jc_pad = gui_bluetooth_merge(n_cfg.jc_disable ? NULL : joycon_poll());
 
 	if (!jc_pad)
 	{
@@ -402,10 +414,27 @@ static bool _jc_virt_mouse_read(lv_indev_data_t *data)
 		return false;
 	}
 
-	// Calibrate left stick.
+	bool wireless = gui_bluetooth_active();
+	bool use_right = n_cfg.jc_force_right;
+	if (wireless)
+	{
+		if (use_right && !jc_pad->conn_r && jc_pad->conn_l)
+			use_right = false;
+		else if (!use_right && !jc_pad->conn_l && jc_pad->conn_r)
+			use_right = true;
+		if (bluetooth_side != (int)use_right)
+		{
+			jc_drv_ctx.calibration_step = 0;
+			bluetooth_side = use_right;
+		}
+	}
+	else
+		bluetooth_side = -1;
+
+	// Calibrate selected stick.
 	if (jc_drv_ctx.calibration_step != JC_CAL_MAX_STEPS)
 	{
-		if (n_cfg.jc_force_right)
+		if (use_right)
 		{
 			if (jc_pad->conn_r
 				&& jc_pad->rstick_x > 0x400 && jc_pad->rstick_y > 0x400
@@ -439,6 +468,9 @@ static bool _jc_virt_mouse_read(lv_indev_data_t *data)
 			if (console_enabled)
 				goto console;
 
+			if (wireless)
+				goto handle_buttons;
+
 			data->state = LV_INDEV_STATE_REL;
 
 			return false;
@@ -446,11 +478,12 @@ static bool _jc_virt_mouse_read(lv_indev_data_t *data)
 	}
 
 	// Re-calibrate on disconnection.
-	if (n_cfg.jc_force_right && !jc_pad->conn_r)
+	if (use_right && !jc_pad->conn_r)
 		jc_drv_ctx.calibration_step = 0;
-	else if (!n_cfg.jc_force_right && !jc_pad->conn_l)
+	else if (!use_right && !jc_pad->conn_l)
 		jc_drv_ctx.calibration_step = 0;
 
+handle_buttons:
 	// Set button presses.
 	if (jc_pad->a || jc_pad->zl || jc_pad->zr)
 		data->state = LV_INDEV_STATE_PR;
@@ -506,7 +539,7 @@ console:
 	}
 
 	// Calculate new cursor position.
-	if (!n_cfg.jc_force_right)
+	if (!use_right)
 	{
 		// Left stick X.
 		if (jc_pad->lstick_x <= jc_drv_ctx.cx_max && jc_pad->lstick_x >= jc_drv_ctx.cx_min)
@@ -640,6 +673,7 @@ static system_maintenance_tasks_t system_tasks;
 
 void manual_system_maintenance(bool refresh)
 {
+	gui_bluetooth_poll_fast();
 	for (u32 task_idx = 0; task_idx < (sizeof(system_maintenance_tasks_t) / sizeof(lv_task_t *)); task_idx++)
 	{
 		lv_task_t *task = system_tasks.tasks[task_idx];
@@ -2490,11 +2524,19 @@ static void _nyx_main_menu(lv_theme_t * th)
 	}
 }
 
+static void _joycon_boot_init(void *unused)
+{
+	(void)unused;
+	jc_init_hw();
+	gui_bluetooth_autostart();
+}
+
 void nyx_load_and_run()
 {
 	memset(&system_tasks, 0, sizeof(system_maintenance_tasks_t));
 
 	lv_init();
+	lv_draw_set_service_cb(gui_bluetooth_draw_poll);
 	gfx_con.fillbg = 1;
 
 	// Initialize framebuffer drawing functions.
@@ -2506,7 +2548,7 @@ void nyx_load_and_run()
 	// Initialize Joy-Con.
 	if (!n_cfg.jc_disable)
 	{
-		lv_task_t *task_jc_init_hw = lv_task_create(jc_init_hw, LV_TASK_ONESHOT, LV_TASK_PRIO_LOWEST, NULL);
+		lv_task_t *task_jc_init_hw = lv_task_create(_joycon_boot_init, LV_TASK_ONESHOT, LV_TASK_PRIO_LOWEST, NULL);
 		lv_task_once(task_jc_init_hw);
 	}
 	lv_indev_drv_t indev_drv_jc;
@@ -2548,12 +2590,16 @@ void nyx_load_and_run()
 		lv_task_once(task_run_sd_errors);
 	}
 
+	// Start the optional dock watcher only after all GUI/input initialization.
+	gui_tv_auto_configure();
+
 	// Gui loop.
 	if (h_cfg.t210b01)
 	{
 		// Minerva not supported on T210B01 yet. Slight power saving via spinlock.
 		while (true)
 		{
+			gui_bluetooth_poll();
 			lv_task_handler();
 			usleep(400);
 		}
@@ -2565,6 +2611,7 @@ void nyx_load_and_run()
 		{
 			minerva_change_freq(FREQ_1600);  // Takes 295 us.
 
+			gui_bluetooth_poll();
 			lv_task_handler();
 
 			minerva_change_freq(FREQ_800);   // Takes 80 us.

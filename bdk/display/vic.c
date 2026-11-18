@@ -527,6 +527,29 @@ void vic_set_surface(const vic_surface_t *sfc)
 	vic_wait_idle();
 }
 
+int vic_wait_idle_poll(void (*service)(void))
+{
+	u32 started = get_tmr_us(), count = 0;
+	while (VIC(PVIC_FALCON_IDLESTATE))
+	{
+		usleep(10);
+		if (!(++count & 63))
+		{
+			if (service) service();
+			if ((u32)(get_tmr_us() - started) >= 150000)
+				return 1;
+		}
+	}
+	return 0;
+}
+
+int vic_compose_poll(void (*service)(void))
+{
+	int result = vic_wait_idle_poll(service);
+	_vic_write_priv(VIC_FC_COMPOSE, COMPOSE_START);
+	return result;
+}
+
 int vic_compose()
 {
 	// Wait for surface cache to get ready. Otherwise VIC will hang.

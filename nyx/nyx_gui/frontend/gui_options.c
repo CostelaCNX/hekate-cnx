@@ -19,6 +19,8 @@
 #include <bdk.h>
 
 #include "gui.h"
+#include "gui_tv.h"
+#include "gui_bluetooth.h"
 #include "gui_info.h"
 #include "../config.h"
 #include <libs/lvgl/lv_themes/lv_theme_hekate.h>
@@ -318,7 +320,8 @@ static lv_res_t _autoboot_delay_action(lv_obj_t *ddlist)
 
 static lv_res_t _slider_brightness_action(lv_obj_t * slider)
 {
-	display_backlight_brightness(lv_slider_get_value(slider) - 20, 0);
+	if (!gui_tv_console_dark())
+		display_backlight_brightness(lv_slider_get_value(slider) - 20, 0);
 	h_cfg.backlight = lv_slider_get_value(slider);
 	ini_changes_made = true;
 
@@ -1484,6 +1487,8 @@ lv_res_t create_win_nyx_options(lv_obj_t *parrent_btn)
 	lv_theme_t *th = lv_theme_get_current();
 
 	lv_obj_t *win = nyx_create_standard_window(SYMBOL_HOME" Configurações", _action_win_nyx_options_close);
+	lv_win_add_btn(win, NULL, SYMBOL_USB" TV / Dock", gui_tv_open);
+	lv_win_add_btn(win, NULL, SYMBOL_SHUFFLE" Joy-Con BT", gui_bluetooth_open);
 
 	static lv_style_t h_style;
 	lv_style_copy(&h_style, &lv_style_transp);

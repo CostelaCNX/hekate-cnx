@@ -59,6 +59,8 @@ void set_nyx_default_configuration()
 	n_cfg.jc_disable     = 0;
 	n_cfg.jc_force_right = 0;
 	n_cfg.bpmp_clock     = 0;
+	n_cfg.tv_auto        = 1;
+	n_cfg.tv_keep_screen = 1;
 }
 
 int create_config_entry()
@@ -243,6 +245,16 @@ int create_nyx_config_entry(bool force_unmount)
 
 	f_puts("\nbpmpclock=", &fp);
 	itoa(n_cfg.bpmp_clock, lbuf, 10);
+	f_puts(lbuf, &fp);
+
+	n_cfg.tv_keep_screen = n_cfg.tv_keep_screen != 0;
+	f_puts("\ntv_keep_screen=", &fp);
+	itoa(n_cfg.tv_keep_screen, lbuf, 10);
+	f_puts(lbuf, &fp);
+
+	n_cfg.tv_auto = n_cfg.tv_auto == 1;
+	f_puts("\ntv_auto=", &fp);
+	itoa(n_cfg.tv_auto, lbuf, 10);
 	f_puts(lbuf, &fp);
 
 	f_puts("\n", &fp);

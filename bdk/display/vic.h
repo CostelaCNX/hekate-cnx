@@ -61,6 +61,8 @@ typedef struct _vic_surface_t
 void vic_set_surface(const vic_surface_t *sfc);
 int  vic_wait_idle();
 int  vic_compose();
+int  vic_wait_idle_poll(void (*service)(void));
+int  vic_compose_poll(void (*service)(void));
 int  vic_init();
 void vic_end();
 

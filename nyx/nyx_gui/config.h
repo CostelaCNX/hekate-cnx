@@ -56,6 +56,8 @@ typedef struct _nyx_config
 	u32 jc_disable;
 	u32 jc_force_right;
 	u32 bpmp_clock;
+	u32 tv_auto;
+	u32 tv_keep_screen;
 } nyx_config;
 
 extern hekate_config h_cfg;

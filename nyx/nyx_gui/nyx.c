@@ -253,6 +253,10 @@ skip_main_cfg_parse:
 					n_cfg.jc_disable     = atoi(kv->val) == 1;
 				else if (!strcmp("jcforceright", kv->key))
 					n_cfg.jc_force_right = atoi(kv->val) == 1;
+				else if (!strcmp("tv_keep_screen", kv->key))
+					n_cfg.tv_keep_screen = strcmp(kv->val, "0") != 0;
+				else if (!strcmp("tv_auto",      kv->key))
+					n_cfg.tv_auto        = !strcmp(kv->val, "1");
 				else if (!strcmp("bpmpclock",    kv->key))
 					n_cfg.bpmp_clock     = atoi(kv->val);
 			}

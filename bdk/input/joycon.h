@@ -103,8 +103,10 @@ typedef struct _jc_calib_t
 } __attribute__((packed)) jc_calib_t;
 
 void jc_init_hw();
+int  jc_get_attached_mask(void);
 void jc_deinit();
 jc_gamepad_rpt_t *joycon_poll();
 jc_gamepad_rpt_t *jc_get_bt_pairing_info(bool *is_l_hos, bool *is_r_hos);
+jc_gamepad_rpt_t *jc_get_bt_pairing_info_ex(bool *is_l_hos, bool *is_r_hos, bool *is_l_valid, bool *is_r_valid);
 
 #endif

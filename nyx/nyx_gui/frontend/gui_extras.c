@@ -23,6 +23,8 @@
 #include <bdk.h>
 
 #include "gui.h"
+#include "gui_tv.h"
+#include "gui_bluetooth.h"
 #include "gui_extras.h"
 #include "gui_tools_files.h"
 #include <libs/fatfs/ff.h>
@@ -431,6 +433,25 @@ void create_tab_extras(lv_theme_t *th, lv_obj_t *parent)
 
 	lv_obj_t *lbl_files = lv_label_create(btn_files, NULL);
 	lv_label_set_static_text(lbl_files, SYMBOL_SD"  Gerenciador de Arquivos");
+
+	// Dock / TV & Wireless Joy-Con section.
+	lv_obj_t *anchor4 = _section_header(h_right, col_w, "Dock / TV e Controles", btn_files);
+
+	lv_obj_t *btn_tv = lv_btn_create(h_right, NULL);
+	lv_btn_set_action(btn_tv, LV_BTN_ACTION_CLICK, gui_tv_open);
+	lv_obj_set_width(btn_tv, btn_w);
+	lv_obj_align(btn_tv, anchor4, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 5);
+
+	lv_obj_t *lbl_tv = lv_label_create(btn_tv, NULL);
+	lv_label_set_static_text(lbl_tv, SYMBOL_USB"  Saída TV USB-C / Dock");
+
+	lv_obj_t *btn_bt = lv_btn_create(h_right, NULL);
+	lv_btn_set_action(btn_bt, LV_BTN_ACTION_CLICK, gui_bluetooth_open);
+	lv_obj_set_width(btn_bt, btn_w);
+	lv_obj_align(btn_bt, btn_tv, LV_ALIGN_OUT_BOTTOM_LEFT, 0, LV_DPI / 6);
+
+	lv_obj_t *lbl_bt = lv_label_create(btn_bt, NULL);
+	lv_label_set_static_text(lbl_bt, SYMBOL_SHUFFLE"  Joy-Con Sem Fio (BT)");
 
 	// Lock positions after PRETTY has stabilized, then snap h_right top to h_left top.
 	lv_obj_set_protect(h_left,  LV_PROTECT_POS);

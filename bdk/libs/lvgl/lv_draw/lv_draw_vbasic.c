@@ -58,6 +58,16 @@ static inline lv_color_t color_mix_2_alpha(lv_color_t bg_color, lv_opa_t bg_opa,
 /**********************
  *   GLOBAL FUNCTIONS
  **********************/
+static void (*draw_service_cb)(void);
+static bool draw_service_busy;
+void lv_draw_set_service_cb(void (*callback)(void)) { draw_service_cb = callback; }
+static void draw_service(void)
+{
+    if (!draw_service_cb || draw_service_busy) return;
+    draw_service_busy = true;
+    draw_service_cb();
+    draw_service_busy = false;
+}
 
 /**
  * Put a pixel in the Virtual Display Buffer
@@ -164,6 +174,7 @@ void lv_vfill(const lv_area_t * cords_p, const lv_area_t * mask_p,
         if(lv_disp_is_mem_fill_supported()) {
             lv_coord_t row;
             for(row = vdb_rel_a.y1; row <= vdb_rel_a.y2; row++) {
+                if(!(row & 7)) draw_service();
                 lv_disp_mem_fill(&vdb_buf_tmp[vdb_rel_a.x1], w, color);
                 vdb_buf_tmp += vdb_width;
             }
@@ -183,6 +194,7 @@ void lv_vfill(const lv_area_t * cords_p, const lv_area_t * mask_p,
             /*Blend the filled line to every line VDB line-by-line*/
             lv_coord_t row;
             for(row = vdb_rel_a.y1; row <= vdb_rel_a.y2; row++) {
+                if(!(row & 7)) draw_service();
                 lv_disp_mem_blend(&vdb_buf_tmp[vdb_rel_a.x1], color_array_tmp, w, opa);
                 vdb_buf_tmp += vdb_width;
             }
@@ -208,6 +220,7 @@ void lv_vfill(const lv_area_t * cords_p, const lv_area_t * mask_p,
             }
             lv_coord_t row;
             for(row = vdb_rel_a.y1; row <= vdb_rel_a.y2; row++) {
+                if(!(row & 7)) draw_service();
                 lv_disp_mem_blend(&vdb_buf_tmp[vdb_rel_a.x1], color_array_tmp, w, opa);
                 vdb_buf_tmp += vdb_width;
             }
@@ -332,6 +345,7 @@ void lv_vletter(const lv_point_t * pos_p, const lv_area_t * mask_p,
     uint8_t letter_px;
     lv_opa_t px_opa;
     for(row = row_start; row < row_end; row ++) {
+        if(!(row & 7)) draw_service();
         col_byte_cnt = 0;
         col_bit = (col_start * bpp) % 8;
         mask = mask_init >> col_bit;
@@ -447,6 +461,7 @@ void lv_vmap(const lv_area_t * cords_p, const lv_area_t * mask_p,
         if(disp->driver.vdb_wr) {
             lv_coord_t col;
             for(row = masked_a.y1; row <= masked_a.y2; row++) {
+                if(!(row & 7)) draw_service();
                 for(col = 0; col < map_useful_w; col++) {
                     lv_color_t px_color = *((lv_color_t *)&map_p[(uint32_t)col * px_size_byte]);
                     disp->driver.vdb_wr((uint8_t *)vdb_p->buf, vdb_width, col + masked_a.x1, row, px_color, opa);
@@ -457,6 +472,7 @@ void lv_vmap(const lv_area_t * cords_p, const lv_area_t * mask_p,
         /*Normal native VDB*/
         else {
             for(row = masked_a.y1; row <= masked_a.y2; row++) {
+                if(!(row & 7)) draw_service();
 #if USE_LV_GPU
                 if(lv_disp_is_mem_blend_supported() == false) {
                     sw_mem_blend(vdb_buf_tmp, (lv_color_t *)map_p, map_useful_w, opa);
@@ -479,6 +495,7 @@ void lv_vmap(const lv_area_t * cords_p, const lv_area_t * mask_p,
         lv_color_t last_img_px = LV_COLOR_BLACK;
         lv_color_t recolored_px = lv_color_mix(recolor, last_img_px, recolor_opa);
         for(row = masked_a.y1; row <= masked_a.y2; row++) {
+            if(!(row & 7)) draw_service();
             for(col = 0; col < map_useful_w; col++) {
                 lv_opa_t opa_result = opa;
                 uint8_t * px_color_p = (uint8_t *) &map_p[(uint32_t)col * px_size_byte];
@@ -585,6 +602,7 @@ static void sw_color_fill(lv_area_t * mem_area, lv_color_t * mem, const lv_area_
     lv_disp_t * disp = lv_disp_get_active();
     if(disp->driver.vdb_wr) {
         for(col = fill_area->x1; col <= fill_area->x2; col++) {
+            if(!(col & 7)) draw_service();
             for(row = fill_area->y1; row <= fill_area->y2; row++) {
                 disp->driver.vdb_wr((uint8_t *)mem, mem_width, col, row, color, opa);
             }
@@ -606,6 +624,7 @@ static void sw_color_fill(lv_area_t * mem_area, lv_color_t * mem, const lv_area_
             mem += mem_width;
 
             for(row = fill_area->y1 + 1; row <= fill_area->y2; row++) {
+                if(!(row & 7)) draw_service();
                 memcpy(&mem[fill_area->x1], mem_first, copy_size);
                 mem += mem_width;
             }
@@ -618,6 +637,7 @@ static void sw_color_fill(lv_area_t * mem_area, lv_color_t * mem, const lv_area_
             lv_color_t opa_tmp = lv_color_mix(color, bg_tmp, opa);
 #endif
             for(row = fill_area->y1; row <= fill_area->y2; row++) {
+                if(!(row & 7)) draw_service();
                 for(col = fill_area->x1; col <= fill_area->x2; col++) {
 #if LV_COLOR_SCREEN_TRANSP == 0
                     /*If the bg color changed recalculate the result color*/

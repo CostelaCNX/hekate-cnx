@@ -536,6 +536,14 @@ static void _jc_rail_detect()
 	usleep(20);
 }
 
+int jc_get_attached_mask(void)
+{
+	if (!jc_init_done || jc_gamepad.sio_mode)
+		return -1;
+	_jc_rail_detect();
+	return (jc_l.detected ? 1 : 0) | (jc_r.detected ? 2 : 0);
+}
+
 static void _jc_conn_check()
 {
 	if (jc_gamepad.sio_mode)
@@ -739,8 +747,12 @@ static void _jc_parse_wired_hid(jc_dev_t *jc, const u8 *packet, int size)
 		break;
 
 	case JC_HID_SUBMCD_RPT:
+		if (size < (int)sizeof(jc_hid_in_rpt_t))
+			break;
 		if (hid_pkt->subcmd == JC_HID_SUBCMD_SPI_READ)
 		{
+			if (size < (int)(sizeof(jc_hid_in_rpt_t) + sizeof(jc_hid_in_spi_read_t)))
+				break;
 			jc_bt_conn_t *bt_conn;
 
 			if (jc->type & JC_ID_L)
@@ -752,7 +764,8 @@ static void _jc_parse_wired_hid(jc_dev_t *jc, const u8 *packet, int size)
 			jc_hid_in_pair_data_t *pair_data = (jc_hid_in_pair_data_t *)spi_info->data;
 
 			// Check if the reply is pairing info.
-			if (spi_info->size == 0x1A && pair_data->magic == 0x95 && pair_data->size == 0x22)
+			if (spi_info->size == 0x1A && size >= (int)(sizeof(jc_hid_in_rpt_t) + sizeof(jc_hid_in_spi_read_t) + 0x1A) &&
+				pair_data->magic == 0x95 && pair_data->size == 0x22)
 			{
 				bt_conn->type = jc->type;
 
@@ -1101,10 +1114,11 @@ static bool _jc_validate_pairing_info(const u8 *buf, bool *is_hos)
 	return false;
 }
 
-jc_gamepad_rpt_t *jc_get_bt_pairing_info(bool *is_l_hos, bool *is_r_hos)
+jc_gamepad_rpt_t *jc_get_bt_pairing_info_ex(bool *is_l_hos, bool *is_r_hos, bool *is_l_valid, bool *is_r_valid)
 {
 	u8 retries;
 	jc_bt_conn_t *bt_conn;
+	*is_l_hos = *is_r_hos = *is_l_valid = *is_r_valid = false;
 
 	if (!jc_init_done || jc_gamepad.sio_mode)
 		return NULL;
@@ -1189,6 +1203,8 @@ retry:
 
 				if (jc_l_found && is_hos)
 					*is_l_hos = true;
+				if (jc_l_found)
+					*is_l_valid = true;
 			}
 		}
 
@@ -1209,6 +1225,8 @@ retry:
 
 				if (jc_r_found && is_hos)
 					*is_r_hos = true;
+				if (jc_r_found)
+					*is_r_valid = true;
 			}
 		}
 
@@ -1244,6 +1262,12 @@ retry:
 	uart_set_mode(jc_r.uart, UART_AO_TX_MN_RX);
 
 	return &jc_gamepad;
+}
+
+jc_gamepad_rpt_t *jc_get_bt_pairing_info(bool *is_l_hos, bool *is_r_hos)
+{
+	bool valid_l, valid_r;
+	return jc_get_bt_pairing_info_ex(is_l_hos, is_r_hos, &valid_l, &valid_r);
 }
 
 static void _jc_conn_init(jc_dev_t *jc)

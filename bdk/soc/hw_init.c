@@ -468,8 +468,16 @@ void hw_init()
 #endif
 }
 
+#ifdef BDK_HW_EXTRA_DEINIT
+// Nyx can release external display resources before the shared LCD/clock teardown.
+__attribute__((weak)) void hw_display_external_end(void) {}
+#endif
+
 void hw_deinit(bool keep_display)
 {
+#ifdef BDK_HW_EXTRA_DEINIT
+	hw_display_external_end();
+#endif
 	// Seamless display or display power off.
 	if (!keep_display)
 	{

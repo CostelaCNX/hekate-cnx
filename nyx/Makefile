@@ -28,7 +28,7 @@ TRACK_LDFLAGS = $(BUILDDIR)/.ldflags
 
 # Main and graphics.
 OBJS =  start exception_handlers nyx heap gfx \
-		gui gui_info gui_tools gui_options gui_emmc_tools gui_emummc_tools gui_tools_partition_manager \
+		gui gui_tv gui_info gui_tools gui_options gui_emmc_tools gui_emummc_tools gui_tools_partition_manager \
 		gui_extras gui_tools_files \
 		fe_emummc_tools fe_emmc_tools strings_ptbr
 
@@ -38,7 +38,7 @@ OBJS += actmon bpmp ccplex clock di vic i2c irq timer \
 		fuse kfuse \
 		mc sdram minerva ramdisk \
 		sdmmc sdmmc_driver emmc sd nx_emmc_bis emummc_file_based \
-		bm92t36 bq24193 max17050 max7762x max77620-rtc regulator_5v \
+		dpout usbpd bm92t36 bq24193 max17050 max7762x max77620-rtc regulator_5v \
 		touch joycon tmp451 fan \
 		usbd xusbd usb_descriptors usb_gadget_ums usb_gadget_hid \
 		hw_init
@@ -61,6 +61,10 @@ OBJS += diskio ff ffunicode ffsystem \
 		lv_bar lv_btn lv_btnm lv_cb lv_cont lv_ddlist lv_img lv_label lv_line lv_list lv_lmeter lv_mbox \
 		lv_page lv_roller lv_slider lv_sw lv_tabview lv_ta lv_win lv_log lv_imgbtn lv_kb \
 		lv_theme lv_theme_hekate
+
+OBJS += nova_bt_trace ad_parser nova_bt_radio nova_bt_protocol nova_bt_stack gui_bluetooth btstack_linked_list btstack_memory btstack_memory_pool btstack_run_loop btstack_util hci hci_cmd hci_dump l2cap l2cap_signaling hid_host sdp_client sdp_util
+
+CFLAGS_BT = -I$(SOURCEDIR)/bluetooth -I$(SOURCEDIR)/libs/btstack
 
 OBJS := $(addsuffix .o, $(OBJS))
 OBJS := $(addprefix $(BUILDDIR)/, $(OBJS))
@@ -129,7 +133,7 @@ $(BUILDDIR)/$(TARGET).elf: $(OBJS) $(TRACK_LDFLAGS)
 
 $(BUILDDIR)/%.o: %.c $(TRACK_CFLAGS) | $(BUILDDIR)
 	@$(NYXECHO) Building $@
-	@$(CC) $(CFLAGS) $(BDKINC) -MMD -MP -c $< -o $@
+	@$(CC) $(CFLAGS) $(CFLAGS_BT) $(BDKINC) -MMD -MP -c $< -o $@
 
 $(BUILDDIR)/%.o: %.S $(TRACK_CFLAGS) | $(BUILDDIR)
 	@$(NYXECHO) Building $@
